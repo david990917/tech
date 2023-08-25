@@ -111,220 +111,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Constexpr in C++</title>
-    <url>/cpp-constexpr/</url>
-    <content><![CDATA[<h2 id="constexpr"><a href="#constexpr" class="headerlink" title="constexpr"></a>constexpr</h2><p>constexpr 表达式是指值不会改变并且在编译过程就能得到计算结果的表达式。声明为 constexpr 的变量一定是一个 const 变量，而且必须用常量表达式初始化。</p>
-<p>目的是为了允许程序利用编译时的计算能力，来提高代码执行效率。因为有些事情在编译的时候做，可以只做一次，而不是每次在程序运行时执行。</p>
-<p>constexpr 关键字应用的到函数：</p>
-<ol>
-<li>如果传入的参数可以在编译时期计算出来，这个函数就会产生编译时期的值。</li>
-<li>如果不能计算出来，constexpr 修饰的函数就和普通函数一样。</li>
-</ol>
-<p>所以可以一个版本实现对应的功能。</p>
-<h3 id="constexpr-修饰函数的限制"><a href="#constexpr-修饰函数的限制" class="headerlink" title="constexpr 修饰函数的限制"></a>constexpr 修饰函数的限制</h3><p>constexpr 有一些必须遵循的严格要求：</p>
-<ol>
-<li>函数中只能有一个 return 语句（但允许包含 typedefs、using declaration &amp;&amp; directives、静态断言等）</li>
-<li>只能调用其它 constexpr 函数</li>
-<li>只能使用全局 constexpr 变量</li>
-</ol>
-<p>使用三元运算符可以实现计算递归。</p>
-<p>如果将一个函数或者变量标记为 constexpr，那么就顺便标记为 const。constexpr 编译器会对其进行进一步的优化。</p>
-<h2 id="和-const-的对比"><a href="#和-const-的对比" class="headerlink" title="和 const 的对比"></a>和 const 的对比</h2><p>C++ 中的 const 是通过编译器来保证对象的常量性，任何可能违背 const 对象常量性的操作被视为 error。</p>
-<p>const 变量需要在变量初始化的时候就提供初值。这个初始值可以是编译时候确定的值，也可以是运行时确定的值。如果是编译时就确定的值，可以作为声明数组时的长度。</p>
-<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">int</span> COMPILE_CONST = <span class="number">10</span>;</span><br><span class="line"><span class="type">const</span> <span class="type">int</span> RUNTIME_CONST = cin.<span class="built_in">get</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> a[COMPILE_CONST]; <span class="comment">// okey in C++, but error in C</span></span><br><span class="line"><span class="type">int</span> b[RUNTIME_CONST]; <span class="comment">// error in C++</span></span><br></pre></td></tr></table></figure>
-
-<p>因为 C++ 自动把数组长度中出现的编译时常量直接替换为字面值，相当于自动的宏替换；其他如果蛋蛋使用赋值的地方没有进行替换。</p>
-<p>指针自身为 const 表示不可对该指针进行赋值，而指向物为 const 则表示不可对其指向进行赋值。</p>
-<h3 id="类中的-const"><a href="#类中的-const" class="headerlink" title="类中的 const"></a>类中的 const</h3><p>C++ 类中的 this 指针就是一个自身为 const 的指针（指向物不变），类的 const 方法中的 this 指针是自身和指向物都为 const 的指针。</p>
-<h4 id="const-成员变量"><a href="#const-成员变量" class="headerlink" title="const 成员变量"></a>const 成员变量</h4><p><strong>非 static 变量</strong></p>
-<p>非 static 变量必须在构造函数的初始化列表中进行初始化，因为需要在进入构造函数函数体之前就构造完成。</p>
-<p><strong>static 常量</strong></p>
-<p>static 常量在泪中直接声明，在类外进行唯一的定义和初始化。</p>
-<h4 id="const-修饰函数"><a href="#const-修饰函数" class="headerlink" title="const 修饰函数"></a>const 修饰函数</h4><p>语义是保证该函数对应对象本身的 const 性。</p>
-]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Cpp-Programming</title>
-    <url>/cpp-programming/</url>
-    <content><![CDATA[<h2 id="C-语法的问题"><a href="#C-语法的问题" class="headerlink" title="C++ 语法的问题"></a>C++ 语法的问题</h2><ol>
-<li>std::move</li>
-<li>函数形参是否使用引用 &amp;</li>
-<li></li>
-</ol>
-<h2 id="Debugger-的使用"><a href="#Debugger-的使用" class="headerlink" title="Debugger 的使用"></a>Debugger 的使用</h2><ol>
-<li>最重要的起点：一定要记得使用 Debugger</li>
-<li>Debugger 可以按照自己喜欢的范式很好的执行</li>
-</ol>
-<h2 id="Clion-的使用"><a href="#Clion-的使用" class="headerlink" title="Clion 的使用"></a>Clion 的使用</h2>]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>C++ 分布式</title>
-    <url>/cpp-coordinator-worker/</url>
-    <content><![CDATA[<p>使用 C++ 实现 <code>coordinator</code> 和 <code>worker</code> 实现任务分配及处理。</p>
-<p>核心思想是 IO Multiplexing 多路复用。</p>
-<h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p><a href="https://subingwen.cn/linux/epoll/">讲的很细致</a></p>
-<p>主线程负责所有</p>
-<h2 id="IO-Multiplexing-多路复用"><a href="#IO-Multiplexing-多路复用" class="headerlink" title="IO Multiplexing 多路复用"></a>IO Multiplexing 多路复用</h2><p>监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。</p>
-<p>常见的三种 select, poll, epoll.</p>
-<p>select 的核心功能是调用 tcp 文件系统的 poll 函数，不停的查询，如果没有想要的数据，主动执行一次调度（防止一直占用 cpu），直到有一个连接有想要的消息为止。</p>
-<p>缺点：</p>
-<p>1、每次调用 select，都需要把 fd 集合从用户态拷贝到内核态，开销大；<br>2、同时每次调用 select 都需要在内核遍历传递进来的所有 fd，开销大；<br>3、select 支持的文件描述符数量太小了，默认是 1024。</p>
-<p>优点：</p>
-<p>1、select 的可移植性更好，在某些 Unix 系统上不支持 poll ()。<br>2、select 对于超时值提供了更好的精度：微秒，而 poll 是毫秒。</p>
-<p>poll 本质上和 select 没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个 fd 对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有 fd 后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历 fd。</p>
-<p>poll 和 select 同样存在一个缺点：包含大量文件描述符的数组被整体复制于用户态和内核的地址空间之间，而不论这些文件描述符是否就绪，其开销也随着文件描述符数量增加而线性增大。</p>
-<p>核心缺点：还是使用轮询来获取就绪的描述符</p>
-<p>核心优点：没有最大连接数的限制，因为是基于链表进行存储。</p>
-<h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 只对活跃的 socket 进行操作。</p>
-<p>虽然也需要调用 <code>epoll_wait</code> 不断轮询就绪链表，但是只需要判断就绪链表是否为空即可。使用的回调机制带来了性能提升。</p>
-<p>epoll 是事件驱动。</p>
-]]></content>
-  </entry>
-  <entry>
-    <title>C++中的动态多态和静态多态</title>
-    <url>/dynamic-and-static-polymorphism-in-cpp/</url>
-    <content><![CDATA[<h2 id="动态多态"><a href="#动态多态" class="headerlink" title="动态多态"></a>动态多态</h2><p>动态多态是我们熟悉的多态形式。</p>
-<h3 id="核心思想是"><a href="#核心思想是" class="headerlink" title="核心思想是"></a>核心思想是</h3><ol>
-<li>多个类共享一个共同功能集。</li>
-<li>在基类中，将其声明为公共的虚函数接口。各个子类重写虚函数。</li>
-<li>使用指向基类的指针来操作对象，对虚函数的调用会自动绑定到实际的子类实现中。</li>
-</ol>
-<h3 id="虚函数-gt-运行时完成-gt-性能损失"><a href="#虚函数-gt-运行时完成-gt-性能损失" class="headerlink" title="虚函数 -&gt; 运行时完成 -&gt; 性能损失"></a>虚函数 -&gt; 运行时完成 -&gt; 性能损失</h3><ul>
-<li><p>函数有 record-kayouts &amp; vtable-layout</p>
-</li>
-<li><p>vtable 里面包括：</p>
-<ul>
-<li>offset_to_top()</li>
-<li>RTTI (Run-Time Type Indentification) 运行时能够使用基类的指针或引用来检查这些指针或引用所指的对象的实际派生类型</li>
-<li>虚函数真正指向的地址</li>
-</ul>
-</li>
-<li><p>额外开销</p>
-<ul>
-<li>RTTI 判定实际对象<ul>
-<li>时间上：整形比较和取址操作</li>
-<li>空间上：每个类多出一个 type_info 对象</li>
-</ul>
-</li>
-<li>虚函数：指针间接寻找实际执行地址<ul>
-<li>时间上：整形加法和指针间接引用</li>
-<li>空间上：每个类一个虚表，每个对象一个虚表指针</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h2 id="静态多态"><a href="#静态多态" class="headerlink" title="静态多态"></a>静态多态</h2><p>本质是模版的具现化。</p>
-<p>程序在编译期就确定了对象类型和调用的函数地址。</p>
-<h3 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h3><ol>
-<li>不强求共有基类，只需要各个类实现相同的接口声明</li>
-<li>使用时直接对模版指定类型实参即可</li>
-</ol>
-<h3 id="CRTP"><a href="#CRTP" class="headerlink" title="CRTP"></a>CRTP</h3><p>常见实现方式：Curiously recurring template pattern，主要特点是把派生类作为基类的模板参数。</p>
-<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://iliubang.cn/posts/cpp/2022-03-23-c++%E4%B8%AD%E7%9A%84%E5%8A%A8%E6%80%81%E5%A4%9A%E6%80%81%E5%92%8C%E9%9D%99%E6%80%81%E5%A4%9A%E6%80%81/">C++中的动态多态和静态多态</a></p>
-]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-      <tags>
-        <tag>polymorphism</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>C++ 中的左值和右值</title>
-    <url>/lvalue-and-rvalue-in-cpp/</url>
-    <content><![CDATA[<p>在 C++ 中，左值和右值是指对象的两种不同类型。</p>
-<p>左值（或赋值左值）是一个可以出现在赋值号左侧的表达式，即可以用来指定存储位置的表达式。例如，在下面的代码中，变量 a 和数组元素 arr [i] 都是左值：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> arr[<span class="number">10</span>];</span><br><span class="line">arr[i] = a;</span><br></pre></td></tr></table></figure>
-
-<p>右值（或赋值右值）是一个不能出现在赋值号左侧的表达式，它通常表示临时值或者存储在右值引用（rvalue reference）类型中。例如，在下面的代码中，常量 5 和表达式 a + b 都是右值：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> b = <span class="number">6</span>;</span><br><span class="line"><span class="type">int</span> c = <span class="number">5</span> + a;</span><br></pre></td></tr></table></figure>
-
-<p>左值和右值的主要区别在于它们的存储方式。</p>
-<p>左值表示一个存储在内存中的对象，而右值则表示一个临时的、不存储在内存中的对象。这两种类型的对象在 C++ 中有不同的语义和用途，理解它们的区别对于正确使用 C++ 中的赋值运算符和其他语言特性非常重要。</p>
-]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Cpp-Stl</title>
-    <url>/cpp-stl/</url>
-    <content><![CDATA[<h2 id="std-move-将左值引用转换为右值引用"><a href="#std-move-将左值引用转换为右值引用" class="headerlink" title="std::move () - 将左值引用转换为右值引用"></a>std::move () - 将左值引用转换为右值引用</h2><p>std::move 是一个 C++ 标准库函数，核心思想是将左值引用转换为右值引用，它的作用是将一个对象的所有权从当前所有者转移到另一个对象。例如：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v2 = std::<span class="built_in">move</span>(v);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v2: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v2)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面的代码会输出：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">v: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br><span class="line">v:</span><br><span class="line">v2: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
-
-<p>可以看出，std::move 的作用是将 v 的所有权转移到 v2，因此在转移之后 v 的内容会被清空。</p>
-<p>请注意，std::move 并不会执行任何拷贝操作，它只是转移所有权。因此，std::move 通常用于将一个对象用作函数参数，以便将它的所有权转移给函数。例如：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">foo</span><span class="params">(std::vector&lt;<span class="type">int</span>&gt;&amp;&amp; v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;foo: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">foo</span>(std::<span class="built_in">move</span>(v));</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="std-isspace"><a href="#std-isspace" class="headerlink" title="std::isspace()"></a>std::isspace()</h2><p>可以检测 whitespace</p>
-]]></content>
-      <categories>
-        <category>C++</category>
-      </categories>
-      <tags>
-        <tag>stl</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>排序算法</title>
-    <url>/sort-algorithm/</url>
-    <content><![CDATA[<h2 id="九种排序算法分析与实现"><a href="#九种排序算法分析与实现" class="headerlink" title="九种排序算法分析与实现"></a>九种排序算法分析与实现</h2><p>简介：总的来说，排序算法共有八大类，即冒泡排序、选择排序、快速排序、插入排序、希尔排序、归并排序、基数排序以及堆排序等，本文另外也介绍了桶排序。编程语言使用了 C&#x2F;C++（其实主要用的 C），3 个经常出现的函数形参，arr - 待排序数组名（首元素地址）、bgn - 待排序数组起始排序元素位置（有时我们仅需要对数组中某一段元素进行排序，但通常 bgn &#x3D; 0，即 arr 首元素位置）、end - 待排序数组截止排序尾元素的下一个位置（即该位置无效，不可引用）。文中均已升序为例，降序原理相同。</p>
-<p>时间复杂度：描述该算法在处理大量数据时，总的来说其时间效率的参考；  </p>
-<p>稳定性：描述算法对原始序列处理前后，该序列相等大小的元素前后位置是否发生改变</p>
-<p>两个常用的函数：1、获取数组最大元素值；2、交换两个整形元素。代码如下：</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">//获取整形数组的最大值</span></span><br><span class="line"><span class="comment">//<span class="doctag">NOTE:</span> 默认 arr 非空</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">getMaxValue</span><span class="params">(<span class="type">const</span> vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> val : arr)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (val &gt; max)</span><br><span class="line">            max = val;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> max;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*交换两个整形值*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mySwap</span><span class="params">(<span class="type">int</span> *pa, <span class="type">int</span> *pb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> tmp = *pa;</span><br><span class="line">    *pa = *pb;</span><br><span class="line">    *pb = tmp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="1、冒泡排序"><a href="#1、冒泡排序" class="headerlink" title="1、冒泡排序"></a>1、冒泡排序</h3><p>依次比较相邻两元素，若前一元素大于后一元素则交换之，直至最后一个元素即为最大；然后重新从首元素开始重复同样的操作，直至倒数第二个元素即为次大元素；依次类推。如同水中的气泡，依次将最大或最小元素气泡浮出水面。</p>
-<p>时间复杂度：O (N2)   稳定性：稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*冒泡排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bubbleSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/*isLoop 用于指示依次遍历中是否发生元素交换，若没有，则已是有序数列，退出即可*/</span></span><br><span class="line">    <span class="type">bool</span> isLoop = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = end; <span class="literal">true</span> == isLoop &amp;&amp; i &gt; bgn; --i)</span><br><span class="line">    &#123;</span><br><span class="line">        isLoop = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = bgn + <span class="number">1</span>; j &lt; i; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[j - <span class="number">1</span>])</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">mySwap</span>(&amp;arr[j], &amp;arr[j - <span class="number">1</span>]);</span><br><span class="line">                isLoop = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="2、选择排序"><a href="#2、选择排序" class="headerlink" title="2、选择排序"></a>2、选择排序</h3><p>首先初始化最小元素索引值为首元素，依次遍历待排序数列，若遇到小于该最小索引位置处的元素则刷新最小索引为该较小元素的位置，直至遇到尾元素，结束一次遍历，并将最小索引处元素与首元素交换；然后，初始化最小索引值为第二个待排序数列元素位置，同样的操作，可得到数列第二个元素即为次小元素；以此类推。</p>
-<p>时间复杂度：O (N2)   稳定性：不稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*选择排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">selectSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> minIndex = i;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = i + <span class="number">1</span>; j &lt; end; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[minIndex])</span><br><span class="line">                minIndex = j;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (minIndex != i)</span><br><span class="line">            <span class="built_in">mySwap</span>(&amp;arr[i], &amp;arr[minIndex]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="3、快速排序"><a href="#3、快速排序" class="headerlink" title="3、快速排序"></a>3、快速排序</h3><p>类似于选择排序的定位思想）选一基准元素，依次将剩余元素中小于该基准元素的值放置其左侧，大于等于该基准元素的值放置其右侧；然后，取基准元素的前半部分和后半部分分别进行同样的处理；以此类推，直至各子序列剩余一个元素时，即排序完成（类比二叉树的思想，from up to down）</p>
-<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*快排*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quickSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span>  <span class="comment">//arr must be the reference of real param</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> lindex = bgn;</span><br><span class="line"><span class="type">int</span> rindex = end - <span class="number">1</span>;</span><br><span class="line"><span class="type">int</span> std = arr[lindex];</span><br><span class="line"><span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[rindex] &lt; std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[lindex++] = arr[rindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        --rindex;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[lindex] &gt;= std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[rindex--] = arr[lindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ++lindex;</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">arr[lindex] = std;</span><br><span class="line"><span class="built_in">quickSort</span>(arr, bgn, lindex);</span><br><span class="line"><span class="built_in">quickSort</span>(arr, rindex + <span class="number">1</span>, end);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="4、插入排序"><a href="#4、插入排序" class="headerlink" title="4、插入排序"></a>4、插入排序</h3><p>数列前面部分看为有序，依次将后面的无序数列元素插入到前面的有序数列中，初始状态有序数列仅有一个元素，即首元素。在将无序数列元素插入有序数列的过程中，采用了逆序遍历有序数列，相较于顺序遍历会稍显繁琐，但当数列本身已近排序状态效率会更高。</p>
-<p>时间复杂度：O (N2)   稳定性：稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*插入排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">insertSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn + <span class="number">1</span>; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * 分为 1,2 两部分处理，可以囊括 j = beg - 1 时的情况</span></span><br><span class="line"><span class="comment">        * 即需要将 arr[i] 插入到首元素前的位置，若使用一个 for</span></span><br><span class="line"><span class="comment">        * 包括这两部分，则会在发生这种情况时退出</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="comment">/*1*/</span></span><br><span class="line">        <span class="type">int</span> j = i - <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">for</span> ( ; j &gt;= bgn; --j)</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt;= arr[i])</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">/*2*/</span></span><br><span class="line">        <span class="keyword">if</span> (j != i - <span class="number">1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="type">int</span> temp = arr[i];</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> k = i; k &gt; j + <span class="number">1</span>; --k)</span><br><span class="line">            &#123;</span><br><span class="line">                arr[k] = arr[k - <span class="number">1</span>];</span><br><span class="line">            &#125;</span><br><span class="line">            arr[j + <span class="number">1</span>] = temp;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="5、希尔排序"><a href="#5、希尔排序" class="headerlink" title="5、希尔排序"></a>5、希尔排序</h3><p>插入排序的改进版。为了减少数据的移动次数，在初始序列较大时取较大的步长，通常取序列长度的一半，此时只有两个元素比较，交换一次；之后步长依次减半直至步长为 1，即为插入排序，由于此时序列已接近有序，故插入元素时数据移动的次数会相对较少，效率得到了提高。</p>
-<p>时间复杂度：通常认为是 O (N3&#x2F;2) ，未验证  稳定性：不稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*希尔排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">shellSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> step = (end - bgn) / <span class="number">2</span>; step &gt; <span class="number">0</span>; step /= <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; step; ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">/*</span></span><br><span class="line"><span class="comment">            * 以下，insertSort 的变异</span></span><br><span class="line"><span class="comment">            */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> j = i + step; j &lt; end; j += step)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="type">int</span> k = j - step;</span><br><span class="line">                <span class="keyword">for</span> ( ; k &gt;= i; k -= step)</span><br><span class="line">                    <span class="keyword">if</span> (arr[k] &lt;= arr[j])</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">if</span> (k != j - step)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="type">int</span> tmp = arr[j];</span><br><span class="line">                    <span class="keyword">for</span> (<span class="type">int</span> m = j; m &gt; k + step; m -= step)</span><br><span class="line">                        arr[m] = arr[m - step];</span><br><span class="line">                    arr[k + step] = tmp;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="6、桶排序"><a href="#6、桶排序" class="headerlink" title="6、桶排序"></a>6、桶排序</h3><p>实现线性排序，但当元素间值得大小有较大差距时会带来内存空间的较大浪费。首先，找出待排序列中得最大元素 max，申请内存大小为 max + 1 的桶（数组）并初始化为 0；然后，遍历排序数列，并依次将每个元素作为下标的桶元素值自增 1；最后，遍历桶元素，并依次将值非 0 的元素下标值载入排序数列（桶元素 &gt; 1 表明有值大小相等的元素，此时依次将他们载入排序数列），遍历完成，排序数列便为有序数列。</p>
-<p>时间复杂度：O (x*N)   稳定性：稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*桶排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bucketSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[max + <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="built_in">memset</span>(pBuf, <span class="number">0</span>, (max + <span class="number">1</span>)*<span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> i : arr)</span><br><span class="line">    ++pBuf[i];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= max; ++i)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (pBuf[i]--)</span><br><span class="line">        arr[j++] = i;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="7、基数排序"><a href="#7、基数排序" class="headerlink" title="7、基数排序"></a>7、基数排序</h3><p>桶排序的改进版，桶的大小固定为 10，减少了内存空间的开销。首先，找出待排序列中得最大元素 max，并依次按 max 的低位到高位对所有元素排序；桶元素 10 个元素的大小即为待排序数列元素对应数值为相等元素的个数，即每次遍历待排序数列，桶将其按对应数值位大小分为了 10 个层级，桶内元素值得和为待排序数列元素个数。</p>
-<p>时间复杂度：O (x*N)   稳定性：稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*基数排序*/</span></span><br><span class="line"><span class="comment">//1. 计数排序，按整形数值单位进行排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">countSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> exp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> bucket[<span class="number">10</span>] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line">    <span class="type">int</span> arrSize = arr.<span class="built_in">size</span>();</span><br><span class="line">    <span class="type">int</span> *pTemp = <span class="keyword">new</span> <span class="type">int</span>[arrSize];</span><br><span class="line">    <span class="built_in">memset</span>(pTemp, <span class="number">0</span>, arrSize * <span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">//统计单位 exp 各数值计数值</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">    ++bucket[(val / exp) % <span class="number">10</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//计数分层</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt; <span class="number">10</span>; ++i)</span><br><span class="line">    bucket[i] += bucket[i - <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//按 exp 位大小用数组 arr 元素填充 pTemp</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = arrSize - <span class="number">1</span>; i &gt;= <span class="number">0</span>; --i)</span><br><span class="line">    pTemp[ --bucket[(arr[i] / exp) % <span class="number">10</span>] ] = arr[i];</span><br><span class="line"></span><br><span class="line"><span class="comment">/*bugs*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="comment">//bug1: bucket 各层次的计数值没遍历一次相应自减 1</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[bucket[(val / exp) % <span class="number">10</span>] - <span class="number">1</span>] = val;</span><br><span class="line">    <span class="comment">//bug2: arr 数组元素每次排序时，下标应从大到小遍历，否则无法实现排序</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[ --bucket[(val / exp) % <span class="number">10</span>] ] = val;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; arrSize; ++i)</span><br><span class="line">    arr[i] = pTemp[i];</span><br><span class="line"><span class="keyword">delete</span> []pTemp;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//2. 合并各单位计数排序结果</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">radixSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> exp = <span class="number">1</span>; max / exp != <span class="number">0</span>; exp *= <span class="number">10</span>)</span><br><span class="line">        <span class="built_in">countSort</span>(arr, exp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="8、归并排序"><a href="#8、归并排序" class="headerlink" title="8、归并排序"></a>8、归并排序</h3><p>采用了分治和递归的思想，递归 &amp; 分治 - 排序整个数列如同排序两个有序数列，依次执行这个过程直至排序末端的两个元素，再依次向上层输送排序好的两个子列进行排序直至整个数列有序（类比二叉树的思想，from down to up）。</p>
-<p>时间复杂度：O (NlogN)   稳定性：稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*归并排序*/</span></span><br><span class="line"><span class="comment">//排序两个有序数列</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSortInOrder</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> mid, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[end - bgn];</span><br><span class="line">    <span class="type">int</span> *pTemp = pBuf;</span><br><span class="line">    <span class="type">int</span> lindex = bgn;</span><br><span class="line">    <span class="type">int</span> rindex = mid;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> ((lindex &lt; mid) &amp;&amp; (rindex &lt; end))</span><br><span class="line">    *(pTemp++) = (arr[lindex] &lt; arr[rindex]) ? arr[lindex++] : arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (lindex &lt; mid)</span><br><span class="line">    *pTemp++ = arr[lindex++];</span><br><span class="line"><span class="keyword">while</span> (rindex &lt; end)</span><br><span class="line">    *pTemp++ = arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line">pTemp = pBuf;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; i++)</span><br><span class="line">    arr[i] = *pTemp++;</span><br><span class="line"></span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//UpToDown To DownToUp</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> mid = (bgn + end) / <span class="number">2</span>;</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, bgn, mid);</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, mid, end);</span><br><span class="line"><span class="built_in">mergeSortInOrder</span>(arr, bgn, mid, end);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h3 id="9、堆排序"><a href="#9、堆排序" class="headerlink" title="9、堆排序"></a>9、堆排序</h3><p>堆排序的思想借助于二叉堆中的最大堆得以实现。首先，将待排序数列抽象为二叉树，并构造出最大堆；然后，依次将最大元素（即根节点元素）与待排序数列的最后一个元素交换（即二叉树最深层最右边的叶子结点元素）；每次遍历，刷新最后一个元素的位置（自减 1），直至其与首元素相交，即完成排序。</p>
-<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*堆排序*/</span></span><br><span class="line"><span class="comment">//根节点元素自顶向下移动到合适的位置以构成最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">downToMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> child;</span><br><span class="line">    <span class="type">int</span> parent = bgn;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*假根节点向下移动至合适的位置 --整个堆排序的核心代码块*/</span></span><br><span class="line"><span class="keyword">while</span> ((child = parent * <span class="number">2</span> + <span class="number">1</span>) &lt; end)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> ((child &lt; end - <span class="number">1</span>) &amp;&amp; (arr[child] &lt; arr[child + <span class="number">1</span>]))</span><br><span class="line">        ++child;    <span class="comment">//右孩子节点</span></span><br><span class="line">    <span class="keyword">if</span> (arr[child] &gt; arr[parent])</span><br><span class="line">        <span class="built_in">mySwap</span>(&amp;arr[child], &amp;arr[parent]);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    parent = child;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//将数组构造为最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">buildMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> parent = end / <span class="number">2</span> - <span class="number">1</span>;</span><br><span class="line"><span class="keyword">while</span> (parent &gt;= <span class="number">0</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, parent, end);</span><br><span class="line">    --parent;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//堆排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">heapSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//构造最大堆</span></span><br><span class="line">    <span class="built_in">buildMaxHeap</span>(arr, bgn, end);</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (end &gt; <span class="number">1</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">mySwap</span>(&amp;arr[<span class="number">0</span>], &amp;arr[--end]);</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, <span class="number">0</span>, end);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>Algorithms</category>
-      </categories>
-  </entry>
-  <entry>
     <title>Cloud-Benchmark</title>
     <url>/cloud-benchmark/</url>
     <content><![CDATA[<h2 id="Benchmarking"><a href="#Benchmarking" class="headerlink" title="Benchmarking"></a>Benchmarking</h2><p>TPC-DS 是 TPC-H 的进化版本。YCSB 主要用于评估 NoSQL 数据库的性能。<br>关注的重点是读写吞吐量、响应时间和数据加载速度。</p>
@@ -462,6 +248,229 @@
       </tags>
   </entry>
   <entry>
+    <title>Slotted Pages</title>
+    <url>/slotted-pages/</url>
+    <content><![CDATA[<h2 id="Core-Concepts"><a href="#Core-Concepts" class="headerlink" title="Core Concepts"></a>Core Concepts</h2><p><strong>Database Page</strong>: The smallest unit a database read and write from the disk.</p>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Constexpr in C++</title>
+    <url>/cpp-constexpr/</url>
+    <content><![CDATA[<h2 id="constexpr"><a href="#constexpr" class="headerlink" title="constexpr"></a>constexpr</h2><p>constexpr 表达式是指值不会改变并且在编译过程就能得到计算结果的表达式。声明为 constexpr 的变量一定是一个 const 变量，而且必须用常量表达式初始化。</p>
+<p>目的是为了允许程序利用编译时的计算能力，来提高代码执行效率。因为有些事情在编译的时候做，可以只做一次，而不是每次在程序运行时执行。</p>
+<p>constexpr 关键字应用的到函数：</p>
+<ol>
+<li>如果传入的参数可以在编译时期计算出来，这个函数就会产生编译时期的值。</li>
+<li>如果不能计算出来，constexpr 修饰的函数就和普通函数一样。</li>
+</ol>
+<p>所以可以一个版本实现对应的功能。</p>
+<h3 id="constexpr-修饰函数的限制"><a href="#constexpr-修饰函数的限制" class="headerlink" title="constexpr 修饰函数的限制"></a>constexpr 修饰函数的限制</h3><p>constexpr 有一些必须遵循的严格要求：</p>
+<ol>
+<li>函数中只能有一个 return 语句（但允许包含 typedefs、using declaration &amp;&amp; directives、静态断言等）</li>
+<li>只能调用其它 constexpr 函数</li>
+<li>只能使用全局 constexpr 变量</li>
+</ol>
+<p>使用三元运算符可以实现计算递归。</p>
+<p>如果将一个函数或者变量标记为 constexpr，那么就顺便标记为 const。constexpr 编译器会对其进行进一步的优化。</p>
+<h2 id="和-const-的对比"><a href="#和-const-的对比" class="headerlink" title="和 const 的对比"></a>和 const 的对比</h2><p>C++ 中的 const 是通过编译器来保证对象的常量性，任何可能违背 const 对象常量性的操作被视为 error。</p>
+<p>const 变量需要在变量初始化的时候就提供初值。这个初始值可以是编译时候确定的值，也可以是运行时确定的值。如果是编译时就确定的值，可以作为声明数组时的长度。</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">int</span> COMPILE_CONST = <span class="number">10</span>;</span><br><span class="line"><span class="type">const</span> <span class="type">int</span> RUNTIME_CONST = cin.<span class="built_in">get</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> a[COMPILE_CONST]; <span class="comment">// okey in C++, but error in C</span></span><br><span class="line"><span class="type">int</span> b[RUNTIME_CONST]; <span class="comment">// error in C++</span></span><br></pre></td></tr></table></figure>
+
+<p>因为 C++ 自动把数组长度中出现的编译时常量直接替换为字面值，相当于自动的宏替换；其他如果蛋蛋使用赋值的地方没有进行替换。</p>
+<p>指针自身为 const 表示不可对该指针进行赋值，而指向物为 const 则表示不可对其指向进行赋值。</p>
+<h3 id="类中的-const"><a href="#类中的-const" class="headerlink" title="类中的 const"></a>类中的 const</h3><p>C++ 类中的 this 指针就是一个自身为 const 的指针（指向物不变），类的 const 方法中的 this 指针是自身和指向物都为 const 的指针。</p>
+<h4 id="const-成员变量"><a href="#const-成员变量" class="headerlink" title="const 成员变量"></a>const 成员变量</h4><p><strong>非 static 变量</strong></p>
+<p>非 static 变量必须在构造函数的初始化列表中进行初始化，因为需要在进入构造函数函数体之前就构造完成。</p>
+<p><strong>static 常量</strong></p>
+<p>static 常量在泪中直接声明，在类外进行唯一的定义和初始化。</p>
+<h4 id="const-修饰函数"><a href="#const-修饰函数" class="headerlink" title="const 修饰函数"></a>const 修饰函数</h4><p>语义是保证该函数对应对象本身的 const 性。</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>C++ 分布式</title>
+    <url>/cpp-coordinator-worker/</url>
+    <content><![CDATA[<p>使用 C++ 实现 <code>coordinator</code> 和 <code>worker</code> 实现任务分配及处理。</p>
+<p>核心思想是 IO Multiplexing 多路复用。</p>
+<h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p><a href="https://subingwen.cn/linux/epoll/">讲的很细致</a></p>
+<p>主线程负责所有</p>
+<h2 id="IO-Multiplexing-多路复用"><a href="#IO-Multiplexing-多路复用" class="headerlink" title="IO Multiplexing 多路复用"></a>IO Multiplexing 多路复用</h2><p>监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。</p>
+<p>常见的三种 select, poll, epoll.</p>
+<p>select 的核心功能是调用 tcp 文件系统的 poll 函数，不停的查询，如果没有想要的数据，主动执行一次调度（防止一直占用 cpu），直到有一个连接有想要的消息为止。</p>
+<p>缺点：</p>
+<p>1、每次调用 select，都需要把 fd 集合从用户态拷贝到内核态，开销大；<br>2、同时每次调用 select 都需要在内核遍历传递进来的所有 fd，开销大；<br>3、select 支持的文件描述符数量太小了，默认是 1024。</p>
+<p>优点：</p>
+<p>1、select 的可移植性更好，在某些 Unix 系统上不支持 poll ()。<br>2、select 对于超时值提供了更好的精度：微秒，而 poll 是毫秒。</p>
+<p>poll 本质上和 select 没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个 fd 对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有 fd 后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历 fd。</p>
+<p>poll 和 select 同样存在一个缺点：包含大量文件描述符的数组被整体复制于用户态和内核的地址空间之间，而不论这些文件描述符是否就绪，其开销也随着文件描述符数量增加而线性增大。</p>
+<p>核心缺点：还是使用轮询来获取就绪的描述符</p>
+<p>核心优点：没有最大连接数的限制，因为是基于链表进行存储。</p>
+<h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 只对活跃的 socket 进行操作。</p>
+<p>虽然也需要调用 <code>epoll_wait</code> 不断轮询就绪链表，但是只需要判断就绪链表是否为空即可。使用的回调机制带来了性能提升。</p>
+<p>epoll 是事件驱动。</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>Cpp-Programming</title>
+    <url>/cpp-programming/</url>
+    <content><![CDATA[<h2 id="C-语法的问题"><a href="#C-语法的问题" class="headerlink" title="C++ 语法的问题"></a>C++ 语法的问题</h2><ol>
+<li>std::move</li>
+<li>函数形参是否使用引用 &amp;</li>
+<li></li>
+</ol>
+<h2 id="Debugger-的使用"><a href="#Debugger-的使用" class="headerlink" title="Debugger 的使用"></a>Debugger 的使用</h2><ol>
+<li>最重要的起点：一定要记得使用 Debugger</li>
+<li>Debugger 可以按照自己喜欢的范式很好的执行</li>
+</ol>
+<h2 id="Clion-的使用"><a href="#Clion-的使用" class="headerlink" title="Clion 的使用"></a>Clion 的使用</h2>]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Cpp-Stl</title>
+    <url>/cpp-stl/</url>
+    <content><![CDATA[<h2 id="std-move-将左值引用转换为右值引用"><a href="#std-move-将左值引用转换为右值引用" class="headerlink" title="std::move () - 将左值引用转换为右值引用"></a>std::move () - 将左值引用转换为右值引用</h2><p>std::move 是一个 C++ 标准库函数，核心思想是将左值引用转换为右值引用，它的作用是将一个对象的所有权从当前所有者转移到另一个对象。例如：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v2 = std::<span class="built_in">move</span>(v);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v2: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v2)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码会输出：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">v: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br><span class="line">v:</span><br><span class="line">v2: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看出，std::move 的作用是将 v 的所有权转移到 v2，因此在转移之后 v 的内容会被清空。</p>
+<p>请注意，std::move 并不会执行任何拷贝操作，它只是转移所有权。因此，std::move 通常用于将一个对象用作函数参数，以便将它的所有权转移给函数。例如：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">foo</span><span class="params">(std::vector&lt;<span class="type">int</span>&gt;&amp;&amp; v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;foo: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">foo</span>(std::<span class="built_in">move</span>(v));</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="std-isspace"><a href="#std-isspace" class="headerlink" title="std::isspace()"></a>std::isspace()</h2><p>可以检测 whitespace</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>stl</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++中的动态多态和静态多态</title>
+    <url>/dynamic-and-static-polymorphism-in-cpp/</url>
+    <content><![CDATA[<h2 id="动态多态"><a href="#动态多态" class="headerlink" title="动态多态"></a>动态多态</h2><p>动态多态是我们熟悉的多态形式。</p>
+<h3 id="核心思想是"><a href="#核心思想是" class="headerlink" title="核心思想是"></a>核心思想是</h3><ol>
+<li>多个类共享一个共同功能集。</li>
+<li>在基类中，将其声明为公共的虚函数接口。各个子类重写虚函数。</li>
+<li>使用指向基类的指针来操作对象，对虚函数的调用会自动绑定到实际的子类实现中。</li>
+</ol>
+<h3 id="虚函数-gt-运行时完成-gt-性能损失"><a href="#虚函数-gt-运行时完成-gt-性能损失" class="headerlink" title="虚函数 -&gt; 运行时完成 -&gt; 性能损失"></a>虚函数 -&gt; 运行时完成 -&gt; 性能损失</h3><ul>
+<li><p>函数有 record-kayouts &amp; vtable-layout</p>
+</li>
+<li><p>vtable 里面包括：</p>
+<ul>
+<li>offset_to_top()</li>
+<li>RTTI (Run-Time Type Indentification) 运行时能够使用基类的指针或引用来检查这些指针或引用所指的对象的实际派生类型</li>
+<li>虚函数真正指向的地址</li>
+</ul>
+</li>
+<li><p>额外开销</p>
+<ul>
+<li>RTTI 判定实际对象<ul>
+<li>时间上：整形比较和取址操作</li>
+<li>空间上：每个类多出一个 type_info 对象</li>
+</ul>
+</li>
+<li>虚函数：指针间接寻找实际执行地址<ul>
+<li>时间上：整形加法和指针间接引用</li>
+<li>空间上：每个类一个虚表，每个对象一个虚表指针</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="静态多态"><a href="#静态多态" class="headerlink" title="静态多态"></a>静态多态</h2><p>本质是模版的具现化。</p>
+<p>程序在编译期就确定了对象类型和调用的函数地址。</p>
+<h3 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h3><ol>
+<li>不强求共有基类，只需要各个类实现相同的接口声明</li>
+<li>使用时直接对模版指定类型实参即可</li>
+</ol>
+<h3 id="CRTP"><a href="#CRTP" class="headerlink" title="CRTP"></a>CRTP</h3><p>常见实现方式：Curiously recurring template pattern，主要特点是把派生类作为基类的模板参数。</p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://iliubang.cn/posts/cpp/2022-03-23-c++%E4%B8%AD%E7%9A%84%E5%8A%A8%E6%80%81%E5%A4%9A%E6%80%81%E5%92%8C%E9%9D%99%E6%80%81%E5%A4%9A%E6%80%81/">C++中的动态多态和静态多态</a></p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>polymorphism</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++ 中的左值和右值</title>
+    <url>/lvalue-and-rvalue-in-cpp/</url>
+    <content><![CDATA[<p>在 C++ 中，左值和右值是指对象的两种不同类型。</p>
+<p>左值（或赋值左值）是一个可以出现在赋值号左侧的表达式，即可以用来指定存储位置的表达式。例如，在下面的代码中，变量 a 和数组元素 arr [i] 都是左值：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> arr[<span class="number">10</span>];</span><br><span class="line">arr[i] = a;</span><br></pre></td></tr></table></figure>
+
+<p>右值（或赋值右值）是一个不能出现在赋值号左侧的表达式，它通常表示临时值或者存储在右值引用（rvalue reference）类型中。例如，在下面的代码中，常量 5 和表达式 a + b 都是右值：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> b = <span class="number">6</span>;</span><br><span class="line"><span class="type">int</span> c = <span class="number">5</span> + a;</span><br></pre></td></tr></table></figure>
+
+<p>左值和右值的主要区别在于它们的存储方式。</p>
+<p>左值表示一个存储在内存中的对象，而右值则表示一个临时的、不存储在内存中的对象。这两种类型的对象在 C++ 中有不同的语义和用途，理解它们的区别对于正确使用 C++ 中的赋值运算符和其他语言特性非常重要。</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>排序算法</title>
+    <url>/sort-algorithm/</url>
+    <content><![CDATA[<h2 id="九种排序算法分析与实现"><a href="#九种排序算法分析与实现" class="headerlink" title="九种排序算法分析与实现"></a>九种排序算法分析与实现</h2><p>简介：总的来说，排序算法共有八大类，即冒泡排序、选择排序、快速排序、插入排序、希尔排序、归并排序、基数排序以及堆排序等，本文另外也介绍了桶排序。编程语言使用了 C&#x2F;C++（其实主要用的 C），3 个经常出现的函数形参，arr - 待排序数组名（首元素地址）、bgn - 待排序数组起始排序元素位置（有时我们仅需要对数组中某一段元素进行排序，但通常 bgn &#x3D; 0，即 arr 首元素位置）、end - 待排序数组截止排序尾元素的下一个位置（即该位置无效，不可引用）。文中均已升序为例，降序原理相同。</p>
+<p>时间复杂度：描述该算法在处理大量数据时，总的来说其时间效率的参考；  </p>
+<p>稳定性：描述算法对原始序列处理前后，该序列相等大小的元素前后位置是否发生改变</p>
+<p>两个常用的函数：1、获取数组最大元素值；2、交换两个整形元素。代码如下：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">//获取整形数组的最大值</span></span><br><span class="line"><span class="comment">//<span class="doctag">NOTE:</span> 默认 arr 非空</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">getMaxValue</span><span class="params">(<span class="type">const</span> vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> val : arr)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (val &gt; max)</span><br><span class="line">            max = val;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> max;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*交换两个整形值*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mySwap</span><span class="params">(<span class="type">int</span> *pa, <span class="type">int</span> *pb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> tmp = *pa;</span><br><span class="line">    *pa = *pb;</span><br><span class="line">    *pb = tmp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1、冒泡排序"><a href="#1、冒泡排序" class="headerlink" title="1、冒泡排序"></a>1、冒泡排序</h3><p>依次比较相邻两元素，若前一元素大于后一元素则交换之，直至最后一个元素即为最大；然后重新从首元素开始重复同样的操作，直至倒数第二个元素即为次大元素；依次类推。如同水中的气泡，依次将最大或最小元素气泡浮出水面。</p>
+<p>时间复杂度：O (N2)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*冒泡排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bubbleSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/*isLoop 用于指示依次遍历中是否发生元素交换，若没有，则已是有序数列，退出即可*/</span></span><br><span class="line">    <span class="type">bool</span> isLoop = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = end; <span class="literal">true</span> == isLoop &amp;&amp; i &gt; bgn; --i)</span><br><span class="line">    &#123;</span><br><span class="line">        isLoop = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = bgn + <span class="number">1</span>; j &lt; i; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[j - <span class="number">1</span>])</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">mySwap</span>(&amp;arr[j], &amp;arr[j - <span class="number">1</span>]);</span><br><span class="line">                isLoop = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、选择排序"><a href="#2、选择排序" class="headerlink" title="2、选择排序"></a>2、选择排序</h3><p>首先初始化最小元素索引值为首元素，依次遍历待排序数列，若遇到小于该最小索引位置处的元素则刷新最小索引为该较小元素的位置，直至遇到尾元素，结束一次遍历，并将最小索引处元素与首元素交换；然后，初始化最小索引值为第二个待排序数列元素位置，同样的操作，可得到数列第二个元素即为次小元素；以此类推。</p>
+<p>时间复杂度：O (N2)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*选择排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">selectSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> minIndex = i;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = i + <span class="number">1</span>; j &lt; end; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[minIndex])</span><br><span class="line">                minIndex = j;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (minIndex != i)</span><br><span class="line">            <span class="built_in">mySwap</span>(&amp;arr[i], &amp;arr[minIndex]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3、快速排序"><a href="#3、快速排序" class="headerlink" title="3、快速排序"></a>3、快速排序</h3><p>类似于选择排序的定位思想）选一基准元素，依次将剩余元素中小于该基准元素的值放置其左侧，大于等于该基准元素的值放置其右侧；然后，取基准元素的前半部分和后半部分分别进行同样的处理；以此类推，直至各子序列剩余一个元素时，即排序完成（类比二叉树的思想，from up to down）</p>
+<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*快排*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quickSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span>  <span class="comment">//arr must be the reference of real param</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> lindex = bgn;</span><br><span class="line"><span class="type">int</span> rindex = end - <span class="number">1</span>;</span><br><span class="line"><span class="type">int</span> std = arr[lindex];</span><br><span class="line"><span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[rindex] &lt; std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[lindex++] = arr[rindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        --rindex;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[lindex] &gt;= std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[rindex--] = arr[lindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ++lindex;</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">arr[lindex] = std;</span><br><span class="line"><span class="built_in">quickSort</span>(arr, bgn, lindex);</span><br><span class="line"><span class="built_in">quickSort</span>(arr, rindex + <span class="number">1</span>, end);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4、插入排序"><a href="#4、插入排序" class="headerlink" title="4、插入排序"></a>4、插入排序</h3><p>数列前面部分看为有序，依次将后面的无序数列元素插入到前面的有序数列中，初始状态有序数列仅有一个元素，即首元素。在将无序数列元素插入有序数列的过程中，采用了逆序遍历有序数列，相较于顺序遍历会稍显繁琐，但当数列本身已近排序状态效率会更高。</p>
+<p>时间复杂度：O (N2)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*插入排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">insertSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn + <span class="number">1</span>; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * 分为 1,2 两部分处理，可以囊括 j = beg - 1 时的情况</span></span><br><span class="line"><span class="comment">        * 即需要将 arr[i] 插入到首元素前的位置，若使用一个 for</span></span><br><span class="line"><span class="comment">        * 包括这两部分，则会在发生这种情况时退出</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="comment">/*1*/</span></span><br><span class="line">        <span class="type">int</span> j = i - <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">for</span> ( ; j &gt;= bgn; --j)</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt;= arr[i])</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">/*2*/</span></span><br><span class="line">        <span class="keyword">if</span> (j != i - <span class="number">1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="type">int</span> temp = arr[i];</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> k = i; k &gt; j + <span class="number">1</span>; --k)</span><br><span class="line">            &#123;</span><br><span class="line">                arr[k] = arr[k - <span class="number">1</span>];</span><br><span class="line">            &#125;</span><br><span class="line">            arr[j + <span class="number">1</span>] = temp;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5、希尔排序"><a href="#5、希尔排序" class="headerlink" title="5、希尔排序"></a>5、希尔排序</h3><p>插入排序的改进版。为了减少数据的移动次数，在初始序列较大时取较大的步长，通常取序列长度的一半，此时只有两个元素比较，交换一次；之后步长依次减半直至步长为 1，即为插入排序，由于此时序列已接近有序，故插入元素时数据移动的次数会相对较少，效率得到了提高。</p>
+<p>时间复杂度：通常认为是 O (N3&#x2F;2) ，未验证  稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*希尔排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">shellSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> step = (end - bgn) / <span class="number">2</span>; step &gt; <span class="number">0</span>; step /= <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; step; ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">/*</span></span><br><span class="line"><span class="comment">            * 以下，insertSort 的变异</span></span><br><span class="line"><span class="comment">            */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> j = i + step; j &lt; end; j += step)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="type">int</span> k = j - step;</span><br><span class="line">                <span class="keyword">for</span> ( ; k &gt;= i; k -= step)</span><br><span class="line">                    <span class="keyword">if</span> (arr[k] &lt;= arr[j])</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">if</span> (k != j - step)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="type">int</span> tmp = arr[j];</span><br><span class="line">                    <span class="keyword">for</span> (<span class="type">int</span> m = j; m &gt; k + step; m -= step)</span><br><span class="line">                        arr[m] = arr[m - step];</span><br><span class="line">                    arr[k + step] = tmp;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6、桶排序"><a href="#6、桶排序" class="headerlink" title="6、桶排序"></a>6、桶排序</h3><p>实现线性排序，但当元素间值得大小有较大差距时会带来内存空间的较大浪费。首先，找出待排序列中得最大元素 max，申请内存大小为 max + 1 的桶（数组）并初始化为 0；然后，遍历排序数列，并依次将每个元素作为下标的桶元素值自增 1；最后，遍历桶元素，并依次将值非 0 的元素下标值载入排序数列（桶元素 &gt; 1 表明有值大小相等的元素，此时依次将他们载入排序数列），遍历完成，排序数列便为有序数列。</p>
+<p>时间复杂度：O (x*N)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*桶排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bucketSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[max + <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="built_in">memset</span>(pBuf, <span class="number">0</span>, (max + <span class="number">1</span>)*<span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> i : arr)</span><br><span class="line">    ++pBuf[i];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= max; ++i)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (pBuf[i]--)</span><br><span class="line">        arr[j++] = i;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7、基数排序"><a href="#7、基数排序" class="headerlink" title="7、基数排序"></a>7、基数排序</h3><p>桶排序的改进版，桶的大小固定为 10，减少了内存空间的开销。首先，找出待排序列中得最大元素 max，并依次按 max 的低位到高位对所有元素排序；桶元素 10 个元素的大小即为待排序数列元素对应数值为相等元素的个数，即每次遍历待排序数列，桶将其按对应数值位大小分为了 10 个层级，桶内元素值得和为待排序数列元素个数。</p>
+<p>时间复杂度：O (x*N)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*基数排序*/</span></span><br><span class="line"><span class="comment">//1. 计数排序，按整形数值单位进行排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">countSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> exp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> bucket[<span class="number">10</span>] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line">    <span class="type">int</span> arrSize = arr.<span class="built_in">size</span>();</span><br><span class="line">    <span class="type">int</span> *pTemp = <span class="keyword">new</span> <span class="type">int</span>[arrSize];</span><br><span class="line">    <span class="built_in">memset</span>(pTemp, <span class="number">0</span>, arrSize * <span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">//统计单位 exp 各数值计数值</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">    ++bucket[(val / exp) % <span class="number">10</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//计数分层</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt; <span class="number">10</span>; ++i)</span><br><span class="line">    bucket[i] += bucket[i - <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//按 exp 位大小用数组 arr 元素填充 pTemp</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = arrSize - <span class="number">1</span>; i &gt;= <span class="number">0</span>; --i)</span><br><span class="line">    pTemp[ --bucket[(arr[i] / exp) % <span class="number">10</span>] ] = arr[i];</span><br><span class="line"></span><br><span class="line"><span class="comment">/*bugs*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="comment">//bug1: bucket 各层次的计数值没遍历一次相应自减 1</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[bucket[(val / exp) % <span class="number">10</span>] - <span class="number">1</span>] = val;</span><br><span class="line">    <span class="comment">//bug2: arr 数组元素每次排序时，下标应从大到小遍历，否则无法实现排序</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[ --bucket[(val / exp) % <span class="number">10</span>] ] = val;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; arrSize; ++i)</span><br><span class="line">    arr[i] = pTemp[i];</span><br><span class="line"><span class="keyword">delete</span> []pTemp;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//2. 合并各单位计数排序结果</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">radixSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> exp = <span class="number">1</span>; max / exp != <span class="number">0</span>; exp *= <span class="number">10</span>)</span><br><span class="line">        <span class="built_in">countSort</span>(arr, exp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8、归并排序"><a href="#8、归并排序" class="headerlink" title="8、归并排序"></a>8、归并排序</h3><p>采用了分治和递归的思想，递归 &amp; 分治 - 排序整个数列如同排序两个有序数列，依次执行这个过程直至排序末端的两个元素，再依次向上层输送排序好的两个子列进行排序直至整个数列有序（类比二叉树的思想，from down to up）。</p>
+<p>时间复杂度：O (NlogN)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*归并排序*/</span></span><br><span class="line"><span class="comment">//排序两个有序数列</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSortInOrder</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> mid, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[end - bgn];</span><br><span class="line">    <span class="type">int</span> *pTemp = pBuf;</span><br><span class="line">    <span class="type">int</span> lindex = bgn;</span><br><span class="line">    <span class="type">int</span> rindex = mid;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> ((lindex &lt; mid) &amp;&amp; (rindex &lt; end))</span><br><span class="line">    *(pTemp++) = (arr[lindex] &lt; arr[rindex]) ? arr[lindex++] : arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (lindex &lt; mid)</span><br><span class="line">    *pTemp++ = arr[lindex++];</span><br><span class="line"><span class="keyword">while</span> (rindex &lt; end)</span><br><span class="line">    *pTemp++ = arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line">pTemp = pBuf;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; i++)</span><br><span class="line">    arr[i] = *pTemp++;</span><br><span class="line"></span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//UpToDown To DownToUp</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> mid = (bgn + end) / <span class="number">2</span>;</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, bgn, mid);</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, mid, end);</span><br><span class="line"><span class="built_in">mergeSortInOrder</span>(arr, bgn, mid, end);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="9、堆排序"><a href="#9、堆排序" class="headerlink" title="9、堆排序"></a>9、堆排序</h3><p>堆排序的思想借助于二叉堆中的最大堆得以实现。首先，将待排序数列抽象为二叉树，并构造出最大堆；然后，依次将最大元素（即根节点元素）与待排序数列的最后一个元素交换（即二叉树最深层最右边的叶子结点元素）；每次遍历，刷新最后一个元素的位置（自减 1），直至其与首元素相交，即完成排序。</p>
+<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*堆排序*/</span></span><br><span class="line"><span class="comment">//根节点元素自顶向下移动到合适的位置以构成最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">downToMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> child;</span><br><span class="line">    <span class="type">int</span> parent = bgn;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*假根节点向下移动至合适的位置 --整个堆排序的核心代码块*/</span></span><br><span class="line"><span class="keyword">while</span> ((child = parent * <span class="number">2</span> + <span class="number">1</span>) &lt; end)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> ((child &lt; end - <span class="number">1</span>) &amp;&amp; (arr[child] &lt; arr[child + <span class="number">1</span>]))</span><br><span class="line">        ++child;    <span class="comment">//右孩子节点</span></span><br><span class="line">    <span class="keyword">if</span> (arr[child] &gt; arr[parent])</span><br><span class="line">        <span class="built_in">mySwap</span>(&amp;arr[child], &amp;arr[parent]);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    parent = child;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//将数组构造为最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">buildMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> parent = end / <span class="number">2</span> - <span class="number">1</span>;</span><br><span class="line"><span class="keyword">while</span> (parent &gt;= <span class="number">0</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, parent, end);</span><br><span class="line">    --parent;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//堆排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">heapSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//构造最大堆</span></span><br><span class="line">    <span class="built_in">buildMaxHeap</span>(arr, bgn, end);</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (end &gt; <span class="number">1</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">mySwap</span>(&amp;arr[<span class="number">0</span>], &amp;arr[--end]);</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, <span class="number">0</span>, end);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Algorithms</category>
+      </categories>
+  </entry>
+  <entry>
     <title>共识算法的学习</title>
     <url>/consensus-algorithm/</url>
     <content><![CDATA[<h2 id="拜占庭将军问题"><a href="#拜占庭将军问题" class="headerlink" title="拜占庭将军问题"></a>拜占庭将军问题</h2><p>m -&gt; 3m+1</p>
@@ -564,47 +573,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Slotted Pages</title>
-    <url>/slotted-pages/</url>
-    <content><![CDATA[<h2 id="Core-Concepts"><a href="#Core-Concepts" class="headerlink" title="Core Concepts"></a>Core Concepts</h2><p><strong>Database Page</strong>: The smallest unit a database read and write from the disk.</p>
-]]></content>
-      <categories>
-        <category>Database</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Telekom Terraform Setup Environment</title>
-    <url>/telekom-cloud/</url>
-    <content><![CDATA[<p>clouds.yaml 是作为连接云平台的凭证，需要在每个对应文件夹中都添加。使用 <code>openstack --os-cloud otc server list</code> 来检测连接的情况。</p>
-<h2 id="Terraform-Configuration"><a href="#Terraform-Configuration" class="headerlink" title="Terraform Configuration"></a>Terraform Configuration</h2><h3 id="NAT-GATEWAY"><a href="#NAT-GATEWAY" class="headerlink" title="NAT GATEWAY"></a>NAT GATEWAY</h3><p>The NAT Gateway service provides network address translation (NAT) with 20 Gbit&#x2F;s of bandwidth for Elastic Cloud Servers (ECSs) and Bare Metal Servers (BMSs) in a Virtual Private Cloud (VPC).</p>
-<h4 id="SNAT-向外连接"><a href="#SNAT-向外连接" class="headerlink" title="SNAT - 向外连接"></a>SNAT - 向外连接</h4><p>SNAT 将 Private IP 地址转换为弹性 IP 地址，使 VPC 内的服务器共享一个弹性 IP 地址，从而安全高效地访问 Internet。</p>
-<p>通俗语言理解：云主机只有自己的 private ip 地址，需要通过 NAT GATEWAY 的弹性 IP 才能访问外界的互联网。</p>
-<h4 id="DNAT-允许外部向内连接"><a href="#DNAT-允许外部向内连接" class="headerlink" title="DNAT - 允许外部向内连接"></a>DNAT - 允许外部向内连接</h4><p>DNAT 使 VPC 内的服务器共享一个 EIP，通过 IP 地址映射或端口映射提供公网访问的服务。</p>
-<p>通俗语言理解：外界用户想要访问云上的资源，可以通过不同的 port 来实现连接到不同的云主机的服务。</p>
-<h3 id="VPC"><a href="#VPC" class="headerlink" title="VPC"></a>VPC</h3><p>VPC（Virtual Private Cloud）是指一种虚拟化的网络环境，用于在公共云中创建隔离的、私有的虚拟网络。VPC 允许用户在云中创建自己的虚拟网络拓扑，并可以控制虚拟网络中的资源（如虚拟机、存储、网络等）。</p>
-<p>VPC 通常提供以下功能：</p>
-<ol>
-<li><p>网络隔离：VPC 允许用户创建隔离的虚拟网络，可以防止不同应用程序或用户之间的网络流量互相干扰。</p>
-</li>
-<li><p>子网划分：VPC 允许用户将虚拟网络划分为多个子网，可以更好地管理和分配 IP 地址。</p>
-</li>
-<li><p>路由控制：VPC 允许用户控制虚拟网络中的路由，从而可以实现自定义网络拓扑和流量管理。</p>
-</li>
-<li><p>安全性：VPC 允许用户通过安全组、ACL（Access Control List）等机制来控制虚拟网络中的访问权限，从而可以提高网络安全性。</p>
-</li>
-</ol>
-<h3 id="Subnet"><a href="#Subnet" class="headerlink" title="Subnet"></a>Subnet</h3><p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
-<p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
-<p>VPC 下面可以有多个 Subnet，其中每个 Subnet 还有自己的 Network ID 和 Subnet ID。</p>
-<h2 id="复杂文件架构"><a href="#复杂文件架构" class="headerlink" title="复杂文件架构"></a>复杂文件架构</h2><ol>
-<li>多文件夹<br>在主目录下面配置 main.tf，然后各个自文件夹是独立的模块。<br>自文件夹中需要输入的元素，可以在子文件夹中配置成 input，然后在主目录输入。</li>
-</ol>
-]]></content>
-      <tags>
-        <tag>telekom</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Pytest</title>
     <url>/pytest-learning/</url>
     <content><![CDATA[<h2 id="Pytest"><a href="#Pytest" class="headerlink" title="Pytest"></a>Pytest</h2><p>Pytest 是基于 unittest 衍生出来的测试框架，使用起来更加简单、效率更高。</p>
@@ -678,6 +646,33 @@
       </categories>
   </entry>
   <entry>
+    <title>Linux 内核那些事儿</title>
+    <url>/linux-kernel/</url>
+    <content><![CDATA[<h2 id="drivers"><a href="#drivers" class="headerlink" title="drivers"></a>drivers</h2><ol>
+<li>Spin Lock</li>
+</ol>
+<p>使用的 <code>spin_lock_irqsave</code> 函数，禁用中断并且获取自旋锁 <code>my_spinlock</code>。接下来的关键代码段可以安全地访问共享资源，因为知道没有其他线程或进程可以同时获取相同的锁。一旦临界区完成，自旋锁就会被释放，中断会通过 <code>spin_unlock_irqrestore</code> 函数恢复到它们之前的状态。</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line"><span class="type">spinlock_t</span> my_spinlock;</span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_lock_irqsave</span>(&amp;my_spinlock, flags);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*critical section, access shared resource here*/</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_unlock_irqrestore</span>(&amp;my_spinlock, flags);</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>kmalloc</li>
+</ol>
+<p>kmalloc is a kernel memory allocation function in Linux.</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">char</span> *my_ptr;</span><br><span class="line"></span><br><span class="line">my_ptr = <span class="built_in">kmalloc</span>(<span class="number">1024</span>, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+
+<h3 id="drivers-x2F-nvme-x2F-host-x2F-pci-c"><a href="#drivers-x2F-nvme-x2F-host-x2F-pci-c" class="headerlink" title="drivers&#x2F;nvme&#x2F;host&#x2F;pci.c"></a>drivers&#x2F;nvme&#x2F;host&#x2F;pci.c</h3><p>最核心的调度逻辑</p>
+<p>从 1031 行的 <code>nvme_handle_cqe()</code> 开始是处理 xrp 的函数。在 1107 行是经典的 <code>ebpf_return = BPF_PROG_RUN(ebpf_prog, &amp;ebpf_context);</code>。</p>
+<p>预期修改：添加 maximum 检测以实现更安全的调度。</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_XRP_COUNT 1000</span></span><br><span class="line"><span class="keyword">if</span>(xrp_ebpf_count&gt;MAX_XRP_COUNT)&#123;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="fs"><a href="#fs" class="headerlink" title="fs"></a>fs</h2><h3 id="fs-x2F-read-write-c"><a href="#fs-x2F-read-write-c" class="headerlink" title="fs&#x2F;read_write.c"></a>fs&#x2F;read_write.c</h3><h3 id="fs-x2F-ioctl-c"><a href="#fs-x2F-ioctl-c" class="headerlink" title="fs&#x2F;ioctl.c"></a>fs&#x2F;ioctl.c</h3><p>在这个文件里面定义了 <code>xrp_resubmit_level_count</code></p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">long</span> _xrp_resubmit_level_count = <span class="built_in">atomic_long_xchg</span>(&amp;xrp_resubmit_level_count, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+]]></content>
+      <tags>
+        <tag>Linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Soverign Cloud Stack</title>
     <url>/soverign-cloud-stack/</url>
     <content><![CDATA[<h2 id="Zuul"><a href="#Zuul" class="headerlink" title="Zuul"></a>Zuul</h2><h2 id="Argo"><a href="#Argo" class="headerlink" title="Argo"></a>Argo</h2><p>Control and Organize the workflow</p>
@@ -710,47 +705,36 @@
       </tags>
   </entry>
   <entry>
-    <title>Linux 内核那些事儿</title>
-    <url>/linux-kernel/</url>
-    <content><![CDATA[<h2 id="drivers"><a href="#drivers" class="headerlink" title="drivers"></a>drivers</h2><ol>
-<li>Spin Lock</li>
+    <title>Telekom Terraform Setup Environment</title>
+    <url>/telekom-cloud/</url>
+    <content><![CDATA[<p>clouds.yaml 是作为连接云平台的凭证，需要在每个对应文件夹中都添加。使用 <code>openstack --os-cloud otc server list</code> 来检测连接的情况。</p>
+<h2 id="Terraform-Configuration"><a href="#Terraform-Configuration" class="headerlink" title="Terraform Configuration"></a>Terraform Configuration</h2><h3 id="NAT-GATEWAY"><a href="#NAT-GATEWAY" class="headerlink" title="NAT GATEWAY"></a>NAT GATEWAY</h3><p>The NAT Gateway service provides network address translation (NAT) with 20 Gbit&#x2F;s of bandwidth for Elastic Cloud Servers (ECSs) and Bare Metal Servers (BMSs) in a Virtual Private Cloud (VPC).</p>
+<h4 id="SNAT-向外连接"><a href="#SNAT-向外连接" class="headerlink" title="SNAT - 向外连接"></a>SNAT - 向外连接</h4><p>SNAT 将 Private IP 地址转换为弹性 IP 地址，使 VPC 内的服务器共享一个弹性 IP 地址，从而安全高效地访问 Internet。</p>
+<p>通俗语言理解：云主机只有自己的 private ip 地址，需要通过 NAT GATEWAY 的弹性 IP 才能访问外界的互联网。</p>
+<h4 id="DNAT-允许外部向内连接"><a href="#DNAT-允许外部向内连接" class="headerlink" title="DNAT - 允许外部向内连接"></a>DNAT - 允许外部向内连接</h4><p>DNAT 使 VPC 内的服务器共享一个 EIP，通过 IP 地址映射或端口映射提供公网访问的服务。</p>
+<p>通俗语言理解：外界用户想要访问云上的资源，可以通过不同的 port 来实现连接到不同的云主机的服务。</p>
+<h3 id="VPC"><a href="#VPC" class="headerlink" title="VPC"></a>VPC</h3><p>VPC（Virtual Private Cloud）是指一种虚拟化的网络环境，用于在公共云中创建隔离的、私有的虚拟网络。VPC 允许用户在云中创建自己的虚拟网络拓扑，并可以控制虚拟网络中的资源（如虚拟机、存储、网络等）。</p>
+<p>VPC 通常提供以下功能：</p>
+<ol>
+<li><p>网络隔离：VPC 允许用户创建隔离的虚拟网络，可以防止不同应用程序或用户之间的网络流量互相干扰。</p>
+</li>
+<li><p>子网划分：VPC 允许用户将虚拟网络划分为多个子网，可以更好地管理和分配 IP 地址。</p>
+</li>
+<li><p>路由控制：VPC 允许用户控制虚拟网络中的路由，从而可以实现自定义网络拓扑和流量管理。</p>
+</li>
+<li><p>安全性：VPC 允许用户通过安全组、ACL（Access Control List）等机制来控制虚拟网络中的访问权限，从而可以提高网络安全性。</p>
+</li>
 </ol>
-<p>使用的 <code>spin_lock_irqsave</code> 函数，禁用中断并且获取自旋锁 <code>my_spinlock</code>。接下来的关键代码段可以安全地访问共享资源，因为知道没有其他线程或进程可以同时获取相同的锁。一旦临界区完成，自旋锁就会被释放，中断会通过 <code>spin_unlock_irqrestore</code> 函数恢复到它们之前的状态。</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line"><span class="type">spinlock_t</span> my_spinlock;</span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_lock_irqsave</span>(&amp;my_spinlock, flags);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*critical section, access shared resource here*/</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_unlock_irqrestore</span>(&amp;my_spinlock, flags);</span><br></pre></td></tr></table></figure>
-
-<ol start="2">
-<li>kmalloc</li>
+<h3 id="Subnet"><a href="#Subnet" class="headerlink" title="Subnet"></a>Subnet</h3><p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
+<p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
+<p>VPC 下面可以有多个 Subnet，其中每个 Subnet 还有自己的 Network ID 和 Subnet ID。</p>
+<h2 id="复杂文件架构"><a href="#复杂文件架构" class="headerlink" title="复杂文件架构"></a>复杂文件架构</h2><ol>
+<li>多文件夹<br>在主目录下面配置 main.tf，然后各个自文件夹是独立的模块。<br>自文件夹中需要输入的元素，可以在子文件夹中配置成 input，然后在主目录输入。</li>
 </ol>
-<p>kmalloc is a kernel memory allocation function in Linux.</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">char</span> *my_ptr;</span><br><span class="line"></span><br><span class="line">my_ptr = <span class="built_in">kmalloc</span>(<span class="number">1024</span>, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
-
-<h3 id="drivers-x2F-nvme-x2F-host-x2F-pci-c"><a href="#drivers-x2F-nvme-x2F-host-x2F-pci-c" class="headerlink" title="drivers&#x2F;nvme&#x2F;host&#x2F;pci.c"></a>drivers&#x2F;nvme&#x2F;host&#x2F;pci.c</h3><p>最核心的调度逻辑</p>
-<p>从 1031 行的 <code>nvme_handle_cqe()</code> 开始是处理 xrp 的函数。在 1107 行是经典的 <code>ebpf_return = BPF_PROG_RUN(ebpf_prog, &amp;ebpf_context);</code>。</p>
-<p>预期修改：添加 maximum 检测以实现更安全的调度。</p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_XRP_COUNT 1000</span></span><br><span class="line"><span class="keyword">if</span>(xrp_ebpf_count&gt;MAX_XRP_COUNT)&#123;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h2 id="fs"><a href="#fs" class="headerlink" title="fs"></a>fs</h2><h3 id="fs-x2F-read-write-c"><a href="#fs-x2F-read-write-c" class="headerlink" title="fs&#x2F;read_write.c"></a>fs&#x2F;read_write.c</h3><h3 id="fs-x2F-ioctl-c"><a href="#fs-x2F-ioctl-c" class="headerlink" title="fs&#x2F;ioctl.c"></a>fs&#x2F;ioctl.c</h3><p>在这个文件里面定义了 <code>xrp_resubmit_level_count</code></p>
-<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">long</span> _xrp_resubmit_level_count = <span class="built_in">atomic_long_xchg</span>(&amp;xrp_resubmit_level_count, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
 ]]></content>
       <tags>
-        <tag>Linux</tag>
+        <tag>telekom</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>Serverless-Distributed-Data-Processing</title>
-    <url>/serverless-distributed-data-processing/</url>
-    <content><![CDATA[<p>A serverless pipeline to process large csv files to produce results has been implemented in the following paper.</p>
-<p>The core features we want to implement are:</p>
-<p>Support static workload and dynamic workloads<br>Multistage pipeline<br>Considering the above requirements, the event triggers are generally used.</p>
-<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img data-src="/serverless-distributed-data-processing/serverless-pipeline.svg"></p>
-<h3 id="Stage1"><a href="#Stage1" class="headerlink" title="Stage1"></a>Stage1</h3><p>Upload one file to Azure Blob Storage system, trigger the <code>partitioner</code> function in the Azure Function partition it to specific equally sized files.</p>
-<h3 id="Stage2"><a href="#Stage2" class="headerlink" title="Stage2"></a>Stage2</h3><p>For each generated partition file, trigger the <code>worker</code> function in the Azure Function to generate the temporary results. The results is in Azure Queue Storage system.</p>
-<h3 id="Stage3"><a href="#Stage3" class="headerlink" title="Stage3"></a>Stage3</h3><p>For each generated message in Azure Queue Storage, trigger the <code>aggregationer</code> function in the Azure Function to aggregate the final result in the cosmosDB.</p>
-<h3 id="Stage4"><a href="#Stage4" class="headerlink" title="Stage4"></a>Stage4</h3><p>When the result in the CosmosDB is updated, trigger the <code>reporter</code> function in the Azure Function to report the result in the Azure Service Bus (Message Queue).</p>
-<h2 id="Implementation-Details"><a href="#Implementation-Details" class="headerlink" title="Implementation Details"></a>Implementation Details</h2><ol>
-<li></li>
-</ol>
-]]></content>
   </entry>
   <entry>
     <title>MinIO</title>
@@ -784,6 +768,68 @@
 ]]></content>
       <categories>
         <category>Cloud Computing</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Serverless-Distributed-Data-Processing</title>
+    <url>/serverless-distributed-data-processing/</url>
+    <content><![CDATA[<p>A serverless pipeline to process large csv files to produce results has been implemented in the following paper.</p>
+<p>The core features we want to implement are:</p>
+<p>Support static workload and dynamic workloads<br>Multistage pipeline<br>Considering the above requirements, the event triggers are generally used.</p>
+<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img data-src="/serverless-distributed-data-processing/serverless-pipeline.svg"></p>
+<h3 id="Stage1"><a href="#Stage1" class="headerlink" title="Stage1"></a>Stage1</h3><p>Upload one file to Azure Blob Storage system, trigger the <code>partitioner</code> function in the Azure Function partition it to specific equally sized files.</p>
+<h3 id="Stage2"><a href="#Stage2" class="headerlink" title="Stage2"></a>Stage2</h3><p>For each generated partition file, trigger the <code>worker</code> function in the Azure Function to generate the temporary results. The results is in Azure Queue Storage system.</p>
+<h3 id="Stage3"><a href="#Stage3" class="headerlink" title="Stage3"></a>Stage3</h3><p>For each generated message in Azure Queue Storage, trigger the <code>aggregationer</code> function in the Azure Function to aggregate the final result in the cosmosDB.</p>
+<h3 id="Stage4"><a href="#Stage4" class="headerlink" title="Stage4"></a>Stage4</h3><p>When the result in the CosmosDB is updated, trigger the <code>reporter</code> function in the Azure Function to report the result in the Azure Service Bus (Message Queue).</p>
+<h2 id="Implementation-Details"><a href="#Implementation-Details" class="headerlink" title="Implementation Details"></a>Implementation Details</h2><ol>
+<li></li>
+</ol>
+]]></content>
+  </entry>
+  <entry>
+    <title>MIT 6.824 Lab 1</title>
+    <url>/mit-6.824-lab1/</url>
+    <content><![CDATA[<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p><code>test-mr.sh</code> 作为测试的主入口</p>
+<p>MapReduce 程序</p>
+<ul>
+<li>mrcoordinator.go 作为调度者程序</li>
+<li>mrworker.go 作为工作程序，实现 <code>map</code> <code>reduce</code> 的功能</li>
+</ul>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="1-基础架构"><a href="#1-基础架构" class="headerlink" title="1. 基础架构"></a>1. 基础架构</h3><p>核心思路就是将 <code>mrsequential.go</code> 的程序拆分到 <code>worker</code> 中的 <code>map</code> 和 <code>reduce</code> 功能。</p>
+<p>worker 通过发送 rpc 请求，向 coordinator 申请任务，并且根据不同的任务种类执行不同的函数。</p>
+<h3 id="2-Race-处理"><a href="#2-Race-处理" class="headerlink" title="2. Race 处理"></a>2. Race 处理</h3><p>由于写过 C++ 的数据库，对于这部分加锁的实现已经很娴熟了。并且 Golang 语言中的 <code>defer unlock()</code> 机制让整体写起来也很顺滑。</p>
+<h3 id="3-特例处理"><a href="#3-特例处理" class="headerlink" title="3. 特例处理"></a>3. 特例处理</h3><ol>
+<li>Early Exit Test - 检测所有任务都完成时才返回</li>
+<li>Crash Test- worker 退出导致任务崩溃</li>
+</ol>
+<p>这两个测试需要我们对于任务的执行进行监控和管理：</p>
+<ul>
+<li>status: 监控任务的执行情况</li>
+<li>timestamp: 检测任务是否会超时</li>
+</ul>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ol>
+<li>使用了 <code>go plugin</code>很有趣：<ol>
+<li>在 <code>Goland</code> 里面 debug 的时候，需要配置首先编译对应的 <code>.so</code> 文件，然后再执行。</li>
+</ol>
+</li>
+<li>rpc<ol>
+<li>代码特点是使用 <code>rpc</code> 进行通信。可以很简单自定义传输的结构，具有很强大的功能。</li>
+<li>这有很多 Golang 语法上面的特性需要我们注意，结构体和内部变量都需要首字母大写</li>
+</ol>
+</li>
+<li>interface<ol>
+<li>Golang 语言中很重要的特性。不需要额外的配置，就可以映射到不同的结构体中。</li>
+<li>作为 rpc 传输 struct 的一部分，因为需要 struct 的结构才能传输。</li>
+<li>解码 <code>actualReply := reply.Payload.(ReplyMapperFromCoordinator)</code></li>
+</ol>
+</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>由于整体架构和实现是完全自己设计并且通过任务，还是蛮开心的。</p>
+<p>继续努力💪</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">...</span><br><span class="line">*** Starting early <span class="built_in">exit</span> <span class="built_in">test</span>.</span><br><span class="line">--- early <span class="built_in">exit</span> <span class="built_in">test</span>: PASS</span><br><span class="line">*** Starting crash <span class="built_in">test</span>.</span><br><span class="line">--- crash <span class="built_in">test</span>: PASS</span><br><span class="line">*** PASSED ALL TESTS</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Distributed System</category>
       </categories>
   </entry>
   <entry>
@@ -879,7 +925,7 @@
   </entry>
   <entry>
     <title>Overview of Compression Algorithms</title>
-    <url>/compression-algorithm-overview2-test/</url>
+    <url>/compression-algorithm-overview/</url>
     <content><![CDATA[<h1 id="1-Overview-of-Data-Compression-Techniques"><a href="#1-Overview-of-Data-Compression-Techniques" class="headerlink" title="1. Overview of Data Compression Techniques"></a>1. Overview of Data Compression Techniques</h1><h2 id="1-1-Frame-of-Reference-FOR-Compression"><a href="#1-1-Frame-of-Reference-FOR-Compression" class="headerlink" title="1.1 Frame of Reference (FOR) Compression"></a>1.1 Frame of Reference (FOR) Compression</h2><h3 id="1-1-1-Core-Concepts"><a href="#1-1-1-Core-Concepts" class="headerlink" title="1.1.1 Core Concepts"></a>1.1.1 Core Concepts</h3><ul>
 <li><strong>Data Transformation</strong>: Reduce storage space by subtracting a reference value from each number. Typically, the minimum value in the dataset serves as the reference.</li>
 <li><strong>Bit Optimization</strong>: Store only the transformed values, utilizing just the number of bits needed for the largest transformed value.</li>
@@ -1165,52 +1211,6 @@
 ]]></content>
       <categories>
         <category>Database</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>MIT 6.824 Lab 1</title>
-    <url>/mit-6.824-lab1/</url>
-    <content><![CDATA[<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p><code>test-mr.sh</code> 作为测试的主入口</p>
-<p>MapReduce 程序</p>
-<ul>
-<li>mrcoordinator.go 作为调度者程序</li>
-<li>mrworker.go 作为工作程序，实现 <code>map</code> <code>reduce</code> 的功能</li>
-</ul>
-<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="1-基础架构"><a href="#1-基础架构" class="headerlink" title="1. 基础架构"></a>1. 基础架构</h3><p>核心思路就是将 <code>mrsequential.go</code> 的程序拆分到 <code>worker</code> 中的 <code>map</code> 和 <code>reduce</code> 功能。</p>
-<p>worker 通过发送 rpc 请求，向 coordinator 申请任务，并且根据不同的任务种类执行不同的函数。</p>
-<h3 id="2-Race-处理"><a href="#2-Race-处理" class="headerlink" title="2. Race 处理"></a>2. Race 处理</h3><p>由于写过 C++ 的数据库，对于这部分加锁的实现已经很娴熟了。并且 Golang 语言中的 <code>defer unlock()</code> 机制让整体写起来也很顺滑。</p>
-<h3 id="3-特例处理"><a href="#3-特例处理" class="headerlink" title="3. 特例处理"></a>3. 特例处理</h3><ol>
-<li>Early Exit Test - 检测所有任务都完成时才返回</li>
-<li>Crash Test- worker 退出导致任务崩溃</li>
-</ol>
-<p>这两个测试需要我们对于任务的执行进行监控和管理：</p>
-<ul>
-<li>status: 监控任务的执行情况</li>
-<li>timestamp: 检测任务是否会超时</li>
-</ul>
-<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ol>
-<li>使用了 <code>go plugin</code>很有趣：<ol>
-<li>在 <code>Goland</code> 里面 debug 的时候，需要配置首先编译对应的 <code>.so</code> 文件，然后再执行。</li>
-</ol>
-</li>
-<li>rpc<ol>
-<li>代码特点是使用 <code>rpc</code> 进行通信。可以很简单自定义传输的结构，具有很强大的功能。</li>
-<li>这有很多 Golang 语法上面的特性需要我们注意，结构体和内部变量都需要首字母大写</li>
-</ol>
-</li>
-<li>interface<ol>
-<li>Golang 语言中很重要的特性。不需要额外的配置，就可以映射到不同的结构体中。</li>
-<li>作为 rpc 传输 struct 的一部分，因为需要 struct 的结构才能传输。</li>
-<li>解码 <code>actualReply := reply.Payload.(ReplyMapperFromCoordinator)</code></li>
-</ol>
-</li>
-</ol>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>由于整体架构和实现是完全自己设计并且通过任务，还是蛮开心的。</p>
-<p>继续努力💪</p>
-<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">...</span><br><span class="line">*** Starting early <span class="built_in">exit</span> <span class="built_in">test</span>.</span><br><span class="line">--- early <span class="built_in">exit</span> <span class="built_in">test</span>: PASS</span><br><span class="line">*** Starting crash <span class="built_in">test</span>.</span><br><span class="line">--- crash <span class="built_in">test</span>: PASS</span><br><span class="line">*** PASSED ALL TESTS</span><br></pre></td></tr></table></figure>
-]]></content>
-      <categories>
-        <category>Distributed System</category>
       </categories>
   </entry>
   <entry>
