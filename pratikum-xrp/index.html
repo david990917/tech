@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tech.hanwen.cloud","root":"/","images":"/images","scheme":"Pisces","darkmode":true,"version":"8.17.1","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pratikum-Xrp">
+<meta property="og:url" content="http://tech.hanwen.cloud/pratikum-xrp/index.html">
+<meta property="og:site_name" content="David Stark">
+<meta property="og:description" content="TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-12-01T12:36:11.000Z">
+<meta property="article:modified_time" content="2023-07-25T11:57:23.970Z">
+<meta property="article:author" content="David Stark">
+<meta property="article:tag" content="xrp">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://tech.hanwen.cloud/pratikum-xrp/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://tech.hanwen.cloud/pratikum-xrp/","path":"pratikum-xrp/","title":"Pratikum-Xrp"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Pratikum-Xrp | David Stark</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">David Stark</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">瀚文</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE-amp-%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="nav-text">运行环境配置 &amp; 背景知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-nix-shell"><span class="nav-text">使用 nix-shell</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8%E8%99%9A%E6%8B%9F%E6%9C%BA"><span class="nav-text">使用虚拟机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#BPF-%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86-amp-eBPF-amp-XDP"><span class="nav-text">BPF 背景知识 &amp; eBPF &amp; XDP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shell-%E7%9A%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="nav-text">shell 的基础知识</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#grub-%E5%91%BD%E4%BB%A4%E8%A7%A3%E6%9E%90"><span class="nav-text">grub 命令解析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#pushd-popd-cd"><span class="nav-text">pushd, popd, cd</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1-%E4%B8%A4%E4%B8%AA%E7%9B%AE%E5%BD%95%E4%B9%8B%E9%97%B4%E5%BF%AB%E9%80%9F%E5%88%87%E6%8D%A2"><span class="nav-text">1. 两个目录之间快速切换</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-%E5%A4%9A%E4%B8%AA%E7%9B%AE%E5%BD%95%E4%B9%8B%E9%97%B4%E5%88%87%E6%8D%A2"><span class="nav-text">2. 多个目录之间切换</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#3-extra-%E5%8A%9F%E8%83%BD"><span class="nav-text">3. extra 功能</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#C-%E7%9A%84%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86"><span class="nav-text">C 的基础知识</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#BPF-KV"><span class="nav-text">BPF_KV</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E6%9C%89%E8%BF%90%E8%A1%8C%E7%8E%AF%E5%A2%83%E7%A0%94%E7%A9%B6"><span class="nav-text">原有运行环境研究</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-Makefile"><span class="nav-text">1. Makefile</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-build-and-install-bpfkv-sh"><span class="nav-text">2. build_and_install_bpfkv.sh</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E6%9C%89%E4%BB%A3%E7%A0%81%E7%A0%94%E7%A9%B6"><span class="nav-text">原有代码研究</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%88%9D%E5%A7%8B%E5%8C%96-BPF-KV"><span class="nav-text">1. 初始化 BPF_KV</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E6%89%A7%E8%A1%8C-get-%E6%8C%87%E4%BB%A4"><span class="nav-text">2. 执行 get 指令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-evaluation-%E5%AF%B9%E5%BA%94%E7%9A%84%E8%BE%93%E5%87%BA"><span class="nav-text">3. evaluation 对应的输出</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%AE%E5%89%8D%E5%B7%B2%E6%9C%89%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%9Aget"><span class="nav-text">目前已有的方法：get</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#get"><span class="nav-text">get</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%AE%E5%89%8D%E5%B7%B2%E6%9C%89%E7%9A%84%E6%96%B9%E6%B3%95%EF%BC%9Arange"><span class="nav-text">目前已有的方法：range</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#syscall"><span class="nav-text">syscall</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E5%BA%94%E7%9A%84%E6%96%87%E4%BB%B6%E5%9C%A8-xrp-bpf-%E7%9A%84%E6%96%87%E4%BB%B6%E5%A4%B9%E4%B8%AD%E3%80%82%E9%9C%80%E8%A6%81%E8%BF%9B%E8%A1%8C%E7%BC%96%E8%AF%91%E9%87%8C%E9%9D%A2%E7%9A%84%E5%86%85%E5%AE%B9%E6%98%AF%E4%B8%8D%E4%B8%80%E6%A0%B7%E7%9A%84%EF%BC%8C%E9%9C%80%E8%A6%81%E5%9C%A8%E5%86%85%E6%A0%B8%E4%B8%AD%E6%89%A7%E8%A1%8C%E3%80%82"><span class="nav-text">对应的文件在 xrp-bpf 的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9C%A8%E5%8E%9F%E6%9C%89%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8A%E8%BF%9B%E8%A1%8C%E4%BF%AE%E6%94%B9"><span class="nav-text">在原有数据结构上进行修改</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%BB%E5%8A%A0%E6%96%B0%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84-SkipList"><span class="nav-text">添加新的数据结构 - SkipList</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Linux-Kernel"><span class="nav-text">Linux Kernel</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-xrp-resubmit-level-count"><span class="nav-text">1. xrp_resubmit_level_count</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-parallel-nvme-submit-cmds"><span class="nav-text">2. parallel nvme_submit_cmds</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E8%AF%91%E5%86%85%E6%A0%B8"><span class="nav-text">编译内核</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="David Stark"
+      src="/images/hanwen.png">
+  <p class="site-author-name" itemprop="name">David Stark</p>
+  <div class="site-description" itemprop="description">瀚文的技术博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/david990917" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;david990917" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/liu-hanwen" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;liu-hanwen" rel="noopener me" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="http://hanwen.cloud/me/" title="http:&#x2F;&#x2F;hanwen.cloud&#x2F;me&#x2F;" rel="noopener" target="_blank">Homepage</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://github.com/david990917/My-LeetCode-Solutions/" title="https:&#x2F;&#x2F;github.com&#x2F;david990917&#x2F;My-LeetCode-Solutions&#x2F;" rel="noopener" target="_blank">LeetCode 题解</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://tech.hanwen.cloud/pratikum-xrp/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/hanwen.png">
+      <meta itemprop="name" content="David Stark">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David Stark">
+      <meta itemprop="description" content="瀚文的技术博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Pratikum-Xrp | David Stark">
+      <meta itemprop="description" content="<center>TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。</center>">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Pratikum-Xrp
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-12-01 13:36:11" itemprop="dateCreated datePublished" datetime="2022-12-01T13:36:11+01:00">2022-12-01</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2023-07-25 13:57:23" itemprop="dateModified" datetime="2023-07-25T13:57:23+02:00">2023-07-25</time>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description"><center>TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。</center></div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。</p>
+<p>参考论文：<a target="_blank" rel="noopener" href="https://www.usenix.org/conference/osdi22/presentation/zhong">XRP: In-Kernel Storage Functions with eBPF</a></p>
+<h2 id="运行环境配置-amp-背景知识"><a href="#运行环境配置-amp-背景知识" class="headerlink" title="运行环境配置 &amp; 背景知识"></a>运行环境配置 &amp; 背景知识</h2><h3 id="使用-nix-shell"><a href="#使用-nix-shell" class="headerlink" title="使用 nix-shell"></a>使用 nix-shell</h3><p>Nix 是一个纯函数式包管理器，旨在使软件包管理可靠且可重现。官方网站</p>
+<p><code>nix-shell</code> 进入新的命令行。</p>
+<h3 id="使用虚拟机"><a href="#使用虚拟机" class="headerlink" title="使用虚拟机"></a>使用虚拟机</h3><p>因为任务涉及到内核的修改，所以使用虚拟机，避免对于主机的直接修改。但是相较于 bare-metal 性能有所下降。</p>
+<p><code>sh startvm.sh</code> 启动虚拟机。</p>
+<p>或使用 <code>nohup sh startvm.sh &amp;</code>，其中 <code>nohup</code> 是不挂断的意思，<code>&amp;</code> 表示后台运行。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">IMG=xrp.cow  # name of the image</span><br><span class="line">MEM=32       # gigabytes of memory to have</span><br><span class="line">CPU=6        # cpu cores to have</span><br><span class="line">VNC=1        # vnc port to use: 0 -&gt; 5900, 1 -&gt; 5901, etc</span><br><span class="line">SSH=10099    # ssh port to use</span><br><span class="line">DEV=51:00.0  # NVMe device bus id</span><br><span class="line"></span><br><span class="line">exec qemu-system-x86_64 \</span><br><span class="line">    -drive file=$&#123;IMG&#125;,format=qcow2 \</span><br><span class="line">    -m $&#123;MEM&#125;G \</span><br><span class="line">    -smp $CPU \</span><br><span class="line">    -cpu host \</span><br><span class="line">    -device vfio-pci,host=$DEV \</span><br><span class="line">    -enable-kvm \</span><br><span class="line">    -nographic \</span><br><span class="line">    -vnc :$VNC \</span><br><span class="line">    -net user,hostfwd=tcp::$&#123;SSH&#125;-:22 \</span><br><span class="line">    -net nic</span><br></pre></td></tr></table></figure>
+
+<p>目前的链接情况是在可访问的服务器 - <code>adel</code> 上面创建虚拟机 <code>xrp</code>。在 <code>~/.ssh/config</code> 里面进行配置，通过 <code>tunnel</code> 可以直接访问虚拟机。</p>
+<h3 id="BPF-背景知识-amp-eBPF-amp-XDP"><a href="#BPF-背景知识-amp-eBPF-amp-XDP" class="headerlink" title="BPF 背景知识 &amp; eBPF &amp; XDP"></a>BPF 背景知识 &amp; eBPF &amp; XDP</h3><p><a target="_blank" rel="noopener" href="https://linux.cn/article-9507-1.html">深入理解 BPF：一个阅读清单</a></p>
+<p>BPF - Berkeley Packet Filter，是类 UNIX 系统上数据链路层的原始接口。用户态的进程可以提供一个过滤程序来生命它想收到哪儿些数据包，从而避免内核空间到用户空间的无用数据包复制行为。</p>
+<p>本质在于实现内核空间执行高效安全程序的机制，可以开发新的可以即时加载的内核模块。最开始是由用户空间注入到内核的一个简单字节码构成，<code>tcpdump</code> 是基于 <code>BPF</code> 的。</p>
+<p>特点：</p>
+<ul>
+<li>BPF Hooks: 能够加载 BPF 程序的位置</li>
+<li>BPF Map: 存储数据、交换信息的桥梁</li>
+<li>BOF HELPERS: 辅助函数，通过这个接口调用内核模块，更加稳定。</li>
+</ul>
+<p>eBPF - extented BPF，从 Linux 3.18 内核版本开始。<br>XDP - eXpress Data Path</p>
+<p>[eXpress Data Path (XDP)](<a href="https://tech.hanwen.cloud/pratikum-xrp/#:~:text=eXpress">https://tech.hanwen.cloud/pratikum-xrp/#:~:text=eXpress</a> Data Path (XDP))</p>
+<p>A programmable, high performance, specialized application, packet processor in the Linux networking data path.</p>
+<p>XDP 位于 Linux 内核网络栈的最底层，它只存在于 RX 路径上，允许在网络设备驱动内部网络堆栈中数据来源最早的地方进行数据包处理，在特定模式下可以在操作系统分配内存（skb）之前就已经完成处理。</p>
+<p>XDP 暴露了一个可以加载 BPF 程序的网络钩子。在这个钩子中，程序能够对传入的数据包进行任意修改和快速决策，避免了内核内部处理带来的额外开销。这使得 XDP 在性能速度方面成为最佳钩子，例如缓解 DDoS 攻击等。</p>
+<h3 id="shell-的基础知识"><a href="#shell-的基础知识" class="headerlink" title="shell 的基础知识"></a>shell 的基础知识</h3><h4 id="grub-命令解析"><a href="#grub-命令解析" class="headerlink" title="grub 命令解析"></a>grub 命令解析</h4><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$&gt; sudo grub-reboot <span class="string">&quot;Advanced options for Ubuntu&gt;Ubuntu, with Linux 5.12.0-xrp+&quot;</span></span><br><span class="line">$&gt; sudo reboot</span><br></pre></td></tr></table></figure>
+
+<p>Linux 中的 GRUB - 全称是 Grand Unified BootLoader。在 Linux 的启动中，GRUB 是在 MBR 之后启动，所以将 GRUB 称为次引导加载程序。</p>
+<p>GRUB 的作用是负责家在所选择的内核，当有多个系统内核时，可以手动选择要启动的系统。</p>
+<h4 id="pushd-popd-cd"><a href="#pushd-popd-cd" class="headerlink" title="pushd, popd, cd"></a>pushd, popd, cd</h4><p>这些是 bash 内建的命令。</p>
+<h5 id="1-两个目录之间快速切换"><a href="#1-两个目录之间快速切换" class="headerlink" title="1. 两个目录之间快速切换"></a>1. 两个目录之间快速切换</h5><p>使用 <code>cd -</code> 。这个时候 <code>-</code> 代表的是 <code>$OLDPWD</code> 变量。</p>
+<h5 id="2-多个目录之间切换"><a href="#2-多个目录之间切换" class="headerlink" title="2. 多个目录之间切换"></a>2. 多个目录之间切换</h5><ul>
+<li><code>pushd</code>: 切换到作为参数的目录，并且把原目录和当前目录压入到一个虚拟的堆栈中。如果不指定参数，则会回到前一个目录，并把堆栈中最近的两个目录作交换</li>
+<li><code>popd</code> 弹出堆栈中最近的目录</li>
+<li><code>dirs</code> 列出当前堆栈中保存的目录列表</li>
+</ul>
+<p>使用 <code>pushd</code> 可以直接在最近的两个目录进行切换，使用<code>pushd+n</code> 可以切换到堆栈中的第 n 个目录。</p>
+<p><code>popd</code> 可以删除堆栈顶端的目录，<code>popd+n</code> 删除第 n 个目录。</p>
+<h5 id="3-extra-功能"><a href="#3-extra-功能" class="headerlink" title="3. extra 功能"></a>3. extra 功能</h5><ol>
+<li><code>pushd-n</code> <code>popd-n</code> 可以只影响堆栈而不切换当前目录</li>
+<li><code>dirs -c</code> 可以清空目录堆栈。说明：堆栈顶端的目录是当前目录，不能被 pop 出去。</li>
+</ol>
+<h3 id="C-的基础知识"><a href="#C-的基础知识" class="headerlink" title="C 的基础知识"></a>C 的基础知识</h3><p>read: pread vs fread</p>
+<ul>
+<li>pread: read bytes from a file at a given position</li>
+<li>fread: read bytes from a stream</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">ssize_t</span> <span class="title">pread</span><span class="params">(<span class="type">int</span> fd, <span class="type">void</span> *buf, <span class="type">size_t</span> count, <span class="type">off_t</span> offset)</span></span>;</span><br><span class="line"><span class="function"><span class="type">size_t</span> <span class="title">fread</span><span class="params">(<span class="type">void</span> *ptr, <span class="type">size_t</span> size, <span class="type">size_t</span> nmemb, FILE *stream)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="BPF-KV"><a href="#BPF-KV" class="headerlink" title="BPF_KV"></a>BPF_KV</h2><h3 id="原有运行环境研究"><a href="#原有运行环境研究" class="headerlink" title="原有运行环境研究"></a>原有运行环境研究</h3><p>是在单独的文件夹，有单独的 Github 仓库，所以相对于比较独立。</p>
+<h4 id="1-Makefile"><a href="#1-Makefile" class="headerlink" title="1. Makefile"></a>1. Makefile</h4><figure class="highlight makefile"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">CC = gcc</span><br><span class="line">CFLAGS = -Wall -D_GNU_SOURCE -Wunused</span><br><span class="line">LDLIBS = -pthread -lbpf -lm</span><br><span class="line"></span><br><span class="line"><span class="section">all: simplekv bpf</span></span><br><span class="line"></span><br><span class="line"><span class="section">simplekv: simplekv.c simplekv.h db_types.h helpers.o range.o parse.o create.o get.o</span></span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: bpf</span></span><br><span class="line"><span class="section">bpf:</span></span><br><span class="line">        make -C xrp-bpf -f Makefile</span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: clean</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">        rm -rf simplekv *.o</span><br><span class="line">        make -C xrp-bpf -f Makefile clean</span><br></pre></td></tr></table></figure>
+
+<p>​.PHONY​ ​是伪目标声明，有以下几个功能：</p>
+<ol>
+<li>避免命令与文件名发生重复。</li>
+<li>生成多个应用程序。<br> 相当于 <code>make clean</code> 是执行 <code>clean</code> 下面对应的文件。</li>
+</ol>
+<h4 id="2-build-and-install-bpfkv-sh"><a href="#2-build-and-install-bpfkv-sh" class="headerlink" title="2. build_and_install_bpfkv.sh"></a>2. build_and_install_bpfkv.sh</h4><p>查看系统信息</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> [ <span class="string">&quot;<span class="subst">$(uname -r)</span>&quot;</span> !=  <span class="string">&quot;5.12.0-xrp+&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;Not in XRP kernel. Please run the following commands to boot into XRP kernel:\n&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;    sudo grub-reboot \&quot;Advanced options for Ubuntu&gt;Ubuntu, with Linux 5.12.0-xrp+\&quot;\n&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;    sudo reboot\n&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="原有代码研究"><a href="#原有代码研究" class="headerlink" title="原有代码研究"></a>原有代码研究</h3><h4 id="1-初始化-BPF-KV"><a href="#1-初始化-BPF-KV" class="headerlink" title="1. 初始化 BPF_KV"></a>1. 初始化 BPF_KV</h4><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">root@xrp:~/XRP/BPF-KV<span class="comment"># ./simplekv 5-layer-db 5 create</span></span><br><span class="line">Load the database of 5 layers</span><br><span class="line">954305 blocks <span class="keyword">in</span> total, max key is 28629151</span><br><span class="line">layer 0 extent 28629151</span><br><span class="line">layer 1 extent 923521</span><br><span class="line">layer 2 extent 29791</span><br><span class="line">layer 3 extent 961</span><br><span class="line">layer 4 extent 31</span><br><span class="line">Writing value heap</span><br><span class="line">Done!</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-执行-get-指令"><a href="#2-执行-get-指令" class="headerlink" title="2. 执行 get 指令"></a>2. 执行 get 指令</h4><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">./simplekv 5-layer-db 5 get -k 1000</span><br><span class="line">./simplekv 5-layer-db 5 get -r 1000 --use-xrp</span><br><span class="line">./simplekv 5-layer-db 5 get -r 1000 --use-xrp --cache 2</span><br></pre></td></tr></table></figure>
+
+<p>C 中从 arg 中提取数字的操作</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="type">int</span> <span class="title function_">strtol</span><span class="params">(<span class="type">const</span> <span class="type">char</span>* str, <span class="type">char</span>**endptr,<span class="type">int</span> base)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">char</span> *endptr = <span class="literal">NULL</span>;</span><br><span class="line">st-&gt;key = strtol(arg, &amp;endptr, <span class="number">10</span>);</span><br></pre></td></tr></table></figure>
+
+<p>并且使用 <code>Argp</code> 来解析程序。</p>
+<p>测试的时候使用找到对应的 <code>run_single_exp.sh</code> 来实际执行。对应的结果在 <code>result</code> 文件夹下面。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./run_single_exp.sh 5 xrp</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-evaluation-对应的输出"><a href="#3-evaluation-对应的输出" class="headerlink" title="3. evaluation 对应的输出"></a>3. evaluation 对应的输出</h4><ol>
+<li>输出对应的参数</li>
+<li>会根据选择的 <code>mod</code> 在 <code>./simplekv</code> 里面进行执行</li>
+</ol>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo ./simplekv <span class="variable">$DB_PATH</span> <span class="variable">$LAYER</span> get --requests=<span class="variable">$NUM_OPS</span> --threads <span class="variable">$NUM_THREADS</span> --use-xrp | <span class="built_in">tee</span> <span class="variable">$EVAL_PATH</span>/result/<span class="variable">$LAYER</span>-layer-xrp.txt</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>输出结果所在的目录</li>
+</ol>
+<p>总结：核心还是需要关注 .&#x2F;simplekv</p>
+<h4 id="目前已有的方法：get"><a href="#目前已有的方法：get" class="headerlink" title="目前已有的方法：get"></a>目前已有的方法：get</h4><h5 id="get"><a href="#get" class="headerlink" title="get"></a>get</h5><ol>
+<li>常规查询使用 lookup_key_userspace</li>
+<li>lookup_bpf</li>
+</ol>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">long</span> <span class="title">lookup_bpf</span><span class="params">(<span class="type">int</span> db_fd, <span class="type">int</span> bpf_fd, <span class="keyword">struct</span> Query *query, <span class="type">ptr__t</span> index_offset)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* Set up buffers and query */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 对其 内存的地址，0x1000 是 4096 -&gt; 4KB</span></span><br><span class="line">    <span class="comment">// 是作者自己定义的函数</span></span><br><span class="line">    <span class="type">char</span> *buf = (<span class="type">char</span> *)<span class="built_in">aligned_alloca</span>(<span class="number">0x1000</span>, <span class="number">0x1000</span>);</span><br><span class="line">    <span class="type">char</span> *scratch = (<span class="type">char</span> *)<span class="built_in">aligned_alloca</span>(<span class="number">0x1000</span>, SCRATCH_SIZE);</span><br><span class="line">    <span class="built_in">memset</span>(buf, <span class="number">0</span>, <span class="number">0x1000</span>);</span><br><span class="line">    <span class="built_in">memset</span>(scratch, <span class="number">0</span>, <span class="number">0x1000</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">ScatterGatherQuery</span> *sgq = (<span class="keyword">struct</span> ScatterGatherQuery *)scratch;</span><br><span class="line">    sgq-&gt;keys[<span class="number">0</span>] = query-&gt;key;</span><br><span class="line">    sgq-&gt;n_keys = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Syscall to invoke BPF function that we loaded out-of-band previously */</span></span><br><span class="line">    <span class="type">long</span> ret = <span class="built_in">syscall</span>(SYS_READ_XRP, db_fd, buf, BLK_SIZE, index_offset, bpf_fd, scratch);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">MaybeValue</span> *maybe_v = &amp;sgq-&gt;values[<span class="number">0</span>];</span><br><span class="line">    query-&gt;found = (<span class="type">long</span>)maybe_v-&gt;found;</span><br><span class="line">    <span class="keyword">if</span> (query-&gt;found)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">memcpy</span>(query-&gt;value, maybe_v-&gt;value, <span class="built_in">sizeof</span>(<span class="type">val__t</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="目前已有的方法：range"><a href="#目前已有的方法：range" class="headerlink" title="目前已有的方法：range"></a>目前已有的方法：range</h3><h3 id="syscall"><a href="#syscall" class="headerlink" title="syscall"></a>syscall</h3><p>核心 xrp 的使用就是使用 syscall, 直接进行调用。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Syscall to invoke BPF function that we loaded out-of-band previously */</span></span><br><span class="line"><span class="type">long</span> ret = syscall(SYS_READ_XRP, db_fd, buf, BLK_SIZE, index_offset, bpf_fd, scratch);</span><br></pre></td></tr></table></figure>
+
+<h2 id="对应的文件在-xrp-bpf-的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。"><a href="#对应的文件在-xrp-bpf-的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。" class="headerlink" title="对应的文件在 xrp-bpf 的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。"></a>对应的文件在 <code>xrp-bpf</code> 的文件夹中。需要进行编译<br>里面的内容是不一样的，需要在内核中执行。</h2><p>研究明白 <code>BPF-KV</code> 的逻辑了，开始直接在 <code>Specialized-BPF-KV</code> 里面的 <code>io-uring</code> 上面进行修改。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"># ./db --load $LAYER</span><br><span class="line">./db --load <span class="number">6</span></span><br><span class="line"></span><br><span class="line"># ./db --run $LAYER $NUM_OPS $NUM_THREADS $read_ratio $rmw_ratio $cache_layer</span><br><span class="line"># ./db --run $LAYER $NUM_OPS $NUM_THREADS <span class="number">100</span> <span class="number">0</span> <span class="number">0</span></span><br><span class="line">./db --run <span class="number">6</span> <span class="number">1000</span> <span class="number">1</span> <span class="number">100</span> <span class="number">0</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="在原有数据结构上进行修改"><a href="#在原有数据结构上进行修改" class="headerlink" title="在原有数据结构上进行修改"></a>在原有数据结构上进行修改</h3><h3 id="添加新的数据结构-SkipList"><a href="#添加新的数据结构-SkipList" class="headerlink" title="添加新的数据结构 - SkipList"></a>添加新的数据结构 - SkipList</h3><p>这个是我一直想要添加的数据结构。MySQL 使用 B + 树做索引，Redis 使用跳表。</p>
+<h2 id="Linux-Kernel"><a href="#Linux-Kernel" class="headerlink" title="Linux Kernel"></a>Linux Kernel</h2><h3 id="1-xrp-resubmit-level-count"><a href="#1-xrp-resubmit-level-count" class="headerlink" title="1. xrp_resubmit_level_count"></a>1. xrp_resubmit_level_count</h3><h3 id="2-parallel-nvme-submit-cmds"><a href="#2-parallel-nvme-submit-cmds" class="headerlink" title="2. parallel nvme_submit_cmds"></a>2. parallel nvme_submit_cmds</h3><p>并行运行 nvme_submit_cmds, 以实现并行执行的目的。需要将 nvme cmd 发送到不同的 Queue 上去执行。</p>
+<p><strong>查询 NVMe 设备队列的信息</strong></p>
+<ol>
+<li>文件查询 - &#x2F;sys&#x2F;class&#x2F;nvme&#x2F;nvmeX&#x2F;queues</li>
+<li>使用代码来查询</li>
+</ol>
+<h3 id="编译内核"><a href="#编译内核" class="headerlink" title="编译内核"></a>编译内核</h3><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">cd build</span><br><span class="line">cd linux</span><br><span class="line">git remote add xxx</span><br><span class="line">git pull</span><br><span class="line">git clean -xdf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Load Config</span></span><br><span class="line">../../build.sh</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Build with 12 cores</span></span><br><span class="line">make -j12 deb-pkg</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Pack up</span></span><br><span class="line">cd ..</span><br><span class="line">dpkg -i ./*.deb</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">reboot</span></span><br><span class="line">reboot</span><br></pre></td></tr></table></figure>
+
+<p>apt install libbpf-dev</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/xrp/" rel="tag"># xrp</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/cpp-coordinator-worker/" rel="prev" title="C++ 分布式">
+                  <i class="fa fa-chevron-left"></i> C++ 分布式
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/lvalue-and-rvalue-in-cpp/" rel="next" title="C++ 中的左值和右值">
+                  C++ 中的左值和右值 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">David Stark</span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/david990917" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js" integrity="sha256-j+yj56cdEY2CwkVtGyz18fNybFGpMGJ8JxG3GSyO2+I=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.2.12/pdfobject.min.js","integrity":"sha256-g2xji1rlE3KsGVClvuxTbcR0Kn2+wtQADSff2Tbb4zA="},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="/js/third-party/tags/pdf.js"></script>
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

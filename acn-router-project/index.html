@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.css" integrity="sha256-Vzbj7sDDS/woiFS3uNKo8eIuni59rjyNGtXfstRzStA=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"tech.hanwen.cloud","root":"/","images":"/images","scheme":"Pisces","darkmode":true,"version":"8.17.1","exturl":false,"sidebar":{"position":"right","display":"post","padding":18,"offset":12},"copycode":{"enable":true,"style":"default"},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":true,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":true,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"搜索...","empty":"没有找到任何搜索结果：${query}","hits_time":"找到 ${hits} 个搜索结果（用时 ${time} 毫秒）","hits":"找到 ${hits} 个搜索结果"},"path":"/search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="高级计算机网络 router project 记录">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Acn Router">
+<meta property="og:url" content="http://tech.hanwen.cloud/acn-router-project/index.html">
+<meta property="og:site_name" content="David Stark">
+<meta property="og:description" content="高级计算机网络 router project 记录">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://tech.hanwen.cloud/acn-router-project/image1.png">
+<meta property="og:image" content="http://tech.hanwen.cloud/acn-router-project/image2.png">
+<meta property="og:image" content="http://tech.hanwen.cloud/acn-router-project/image3.png">
+<meta property="article:published_time" content="2022-11-24T15:56:45.000Z">
+<meta property="article:modified_time" content="2023-07-25T11:31:26.707Z">
+<meta property="article:author" content="David Stark">
+<meta property="article:tag" content="David Stark">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://tech.hanwen.cloud/acn-router-project/image1.png">
+
+
+<link rel="canonical" href="http://tech.hanwen.cloud/acn-router-project/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"zh-CN","comments":true,"permalink":"http://tech.hanwen.cloud/acn-router-project/","path":"acn-router-project/","title":"Acn Router"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Acn Router | David Stark</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">David Stark</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">瀚文</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="搜索" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup"><div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close" role="button">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div class="search-result-container no-result">
+  <div class="search-result-icon">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Problem-1"><span class="nav-text">Problem 1</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Step1-client-%E9%85%8D%E7%BD%AE-sh"><span class="nav-text">Step1 - client 配置 sh</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Linux-ip-command"><span class="nav-text">Linux ip command</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ping"><span class="nav-text">Ping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ARP"><span class="nav-text">ARP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%89%A7%E8%A1%8C-DPDK-%E4%B9%8B%E5%89%8D"><span class="nav-text">执行 DPDK 之前</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step2-dpdk-%E7%9A%84%E9%85%8D%E7%BD%AE"><span class="nav-text">Step2 - dpdk 的配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DPDK"><span class="nav-text">DPDK</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BD%AC%E5%8F%91"><span class="nav-text">转发</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Hugepage"><span class="nav-text">Hugepage</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#DPDK-Library"><span class="nav-text">DPDK Library</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step3-Forwarder"><span class="nav-text">Step3 - Forwarder</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step4-Bidirectional-Forwarder"><span class="nav-text">Step4 - Bidirectional Forwarder</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%A5%E5%85%85%E7%9F%A5%E8%AF%86"><span class="nav-text">补充知识</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Problem-2"><span class="nav-text">Problem 2</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-1-CLI"><span class="nav-text">Step 1 - CLI</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-2-Multithread-Router-Archtecture"><span class="nav-text">Step 2 - Multithread Router Archtecture</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step-3-IPV4-Check"><span class="nav-text">Step 3 - IPV4 Check</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BC%96%E7%A8%8B%E6%94%B6%E8%8E%B7"><span class="nav-text">编程收获</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E8%B7%A8%E6%96%87%E4%BB%B6%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F"><span class="nav-text">1. 跨文件全局变量</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-rte-ether-addr"><span class="nav-text">2. rte_ether_addr</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IPV4-%E6%A3%80%E6%B5%8B"><span class="nav-text">IPV4 检测</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Step4-ARP-Reply"><span class="nav-text">Step4 - ARP Reply</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Ethernet-header-%E5%92%8C-ARP-header"><span class="nav-text">Ethernet header 和 ARP header</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IP-Address-amp-MAC-Address"><span class="nav-text">IP Address &amp; MAC Address</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%91%E9%80%81-ARP-Reply-%E5%8C%85"><span class="nav-text">发送 ARP Reply 包</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Problem-3"><span class="nav-text">Problem 3</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%83%8C%E6%99%AF%E7%9F%A5%E8%AF%86"><span class="nav-text">背景知识</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Problem-4"><span class="nav-text">Problem 4</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="David Stark"
+      src="/images/hanwen.png">
+  <p class="site-author-name" itemprop="name">David Stark</p>
+  <div class="site-description" itemprop="description">瀚文的技术博客</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">8</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/david990917" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;david990917" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.linkedin.com/in/liu-hanwen" title="Linkedin → https:&#x2F;&#x2F;www.linkedin.com&#x2F;in&#x2F;liu-hanwen" rel="noopener me" target="_blank"><i class="fab fa-linkedin fa-fw"></i>Linkedin</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+        <div class="back-to-top animated" role="button" aria-label="返回顶部">
+          <i class="fa fa-arrow-up"></i>
+          <span>0%</span>
+        </div>
+    </div>
+
+    
+    <div class="sidebar-inner sidebar-blogroll">
+      <div class="links-of-blogroll animated">
+        <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+          链接
+        </div>
+        <ul class="links-of-blogroll-list">
+            <li class="links-of-blogroll-item">
+              <a href="http://hanwen.cloud/me/" title="http:&#x2F;&#x2F;hanwen.cloud&#x2F;me&#x2F;" rel="noopener" target="_blank">Homepage</a>
+            </li>
+            <li class="links-of-blogroll-item">
+              <a href="https://github.com/david990917/My-LeetCode-Solutions/" title="https:&#x2F;&#x2F;github.com&#x2F;david990917&#x2F;My-LeetCode-Solutions&#x2F;" rel="noopener" target="_blank">LeetCode 题解</a>
+            </li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://tech.hanwen.cloud/acn-router-project/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/hanwen.png">
+      <meta itemprop="name" content="David Stark">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="David Stark">
+      <meta itemprop="description" content="瀚文的技术博客">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Acn Router | David Stark">
+      <meta itemprop="description" content="<center>高级计算机网络 router project 记录<br></center>">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Acn Router
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">发表于</span>
+
+      <time title="创建时间：2022-11-24 16:56:45" itemprop="dateCreated datePublished" datetime="2022-11-24T16:56:45+01:00">2022-11-24</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">更新于</span>
+      <time title="修改时间：2023-07-25 13:31:26" itemprop="dateModified" datetime="2023-07-25T13:31:26+02:00">2023-07-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">分类于</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Computer-Networks/" itemprop="url" rel="index"><span itemprop="name">Computer Networks</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">阅读次数：</span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+            <div class="post-description"><center>高级计算机网络 router project 记录<br></center></div>
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h1 id="Problem-1"><a href="#Problem-1" class="headerlink" title="Problem 1"></a>Problem 1</h1><h2 id="Step1-client-配置-sh"><a href="#Step1-client-配置-sh" class="headerlink" title="Step1 - client 配置 sh"></a>Step1 - client 配置 sh</h2><p>使用这个指令来进行绑定。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ip addr add 10.0.0.2/24 dev eth1</span><br><span class="line">ip <span class="built_in">link</span> <span class="built_in">set</span> dev eth1 up</span><br><span class="line">ip route add 192.169.0.0/24 via 10.0.0.1 dev eth1</span><br><span class="line">ip route add 172.16.0.0/24 via 10.0.0.1 dev eth1</span><br></pre></td></tr></table></figure>
+
+<p>注意：目前的 <code>ip</code> 配置后，是无法直接通过 <code>ip 地址</code> 进行通信的，需要 <code>router</code> 的 <code>dpdk</code> 相关程序进行转发。因为无法联系上对应的机器。</p>
+<p>Attention: 很神奇！在 <code>router</code> 机器上配置了 <code>ip addr eth1/2/3</code> 之后，启动 <code>./fwd -s 0 -d 1</code> 居然会报错。这样是需要理解的。</p>
+<h3 id="Linux-ip-command"><a href="#Linux-ip-command" class="headerlink" title="Linux ip command"></a>Linux ip command</h3><p><code>Linux ip command</code> 是 Linux 的网络工具和网络管理员。<code>ifconfig</code> 是更老的版本，所以目前不用了。</p>
+<p><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000019363010">ip 路由讲解</a> <a target="_blank" rel="noopener" href="https://www.cyberciti.biz/faq/linux-ip-command-examples-usage-syntax/">命令详解</a></p>
+<p>ip 地址和 mask 关系</p>
+<ul>
+<li><p>子网掩码是用来判断任意两台计算机的 IP 地址是否属于同一子网络的根据。</p>
+</li>
+<li><p>两台计算机各自的 IP 地址与子网掩码进行 AND 运算后，如果得出的结果是相同的，则说明这两台计算机是处于同一个子网络上的，可以进行直接的通讯。</p>
+</li>
+<li><p>子网掩码以 32 位的 2 进制存在，&#x2F;24 表示前 24 位是网络号，后 8 位是主机号。网络号相同的则表示处于同一网段中，且子网掩码不能单独存在，它必须结合 IP 地址一起使用。</p>
+</li>
+</ul>
+<p>其中 <code>eth</code> 是网卡。</p>
+<h3 id="Ping"><a href="#Ping" class="headerlink" title="Ping"></a>Ping</h3><p>Ping 是用于测试两个网络主机之间的可达性。基于 ICMP 协议。</p>
+<blockquote>
+<p>举一个例子来描述「ping」命令的工作过程：</p>
+</blockquote>
+<blockquote>
+<ol>
+<li>假设有两个主机，主机 A（192.168.0.1）和主机 B（192.168.0.2），现在我们要监测主机 A 和主机 B 之间网络是否可达，那么我们在主机 A 上输入命令：ping 192.168.0.2</li>
+<li>此时，ping 命令会在主机 A 上构建一个 ICMP 的请求数据包，然后 ICMP 协议会将这个数据包以及目标 IP（192.168.0.2）等信息一同交给 IP 层协议。</li>
+<li>IP 层协议得到这些信息后，将源地址（本机 IP）、目标地址（目标 IP 192.168.0.2）、再加上控制信息，构建成一个 IP 数据包。</li>
+<li>IP 数据包构建完成后，还需要加上 MAC 地址，因此，还需要通过 ARP 映射表找出目标 IP 所对应的 MAC 地址。当拿到了目标主机的 MAC 地址和本机 MAC 后，一并交给数据链路层，组装成一个数据帧，依据以太网的介质访问规则，将它们传送出出去。</li>
+<li>当主机 B 收到这个数据帧之后，会首先检查它的目标 MAC 地址是不是本机，如果是就接收下来处理，接收之后会检查这个数据帧，将数据帧中的 IP 数据包取出来，交给本机的 IP 层协议，然后 IP 层协议检查完之后，再将 ICMP 数据包取出来交给 ICMP 协议处理，当这一步也处理完成之后，就会构建一个 ICMP 应答数据包，回发给主机 A。</li>
+<li>在一定的时间内，如果主机 A 收到了应答包，则说明它与主机 B 之间网络可达，如果没有收到，则说明网络不可达。除了监测是否可达以外，还可以利用应答时间和发起时间之间的差值，计算出数据包的延迟耗时。</li>
+</ol>
+</blockquote>
+<p>正常的 ping 操作主要是两个特定的 <code>ICMP</code> 消息，<code>ECHO_REQUEST</code> 和 <code>ECHO_REPLY</code>。</p>
+<p>我们使用的 <code>ping -I eth1 192.168.0.2</code> 的 <code>-I</code> 是表明 <code>-I &lt;interface&gt; either interface name or address</code></p>
+<h3 id="ARP"><a href="#ARP" class="headerlink" title="ARP"></a>ARP</h3><p>ARP（Address Resolution Protocol，地址解析协议）是用来将 IP 地址解析为 MAC 地址的协议。主机或三层网络设备上会维护一张 ARP 表，用于存储 IP 地址和 MAC 地址的映射关系。</p>
+<p>为什么需要 ARP？</p>
+<ul>
+<li>因为在局域网中发送数据，只知道对方的网络层地址 IP 地址是不够的。IP 地址必须封装成帧才能通过物理网络发送，因此发送方还需要知道接收方的物理地址。</li>
+<li>所以需要一个通过 IP 地址获取物理地址的协议，才能完成从 IP 地址到 MAC 地址 的转换。</li>
+</ul>
+<h3 id="执行-DPDK-之前"><a href="#执行-DPDK-之前" class="headerlink" title="执行 DPDK 之前"></a>执行 DPDK 之前</h3><p>在 <code>client1 ping client2</code> 的时候， <code>client1</code> 的终端会不断提示。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">19:33:09.310664 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br><span class="line">19:33:10.334896 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p>解读 - 是 10.0.0.2 发送的请求报文，用于确定 10.0.0.1 的 MAC 地址，以便于可以在本地网络上进行通信。</p>
+<p>The message “ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28” is an ARP request message that is used to determine the MAC address of a device with the IP address 10.0.0.1. The message is being sent from the device with the IP address 10.0.0.2. The length field specifies the length of the message, which is 28 bytes in this case.</p>
+<p>When a device wants to communicate with another device on a local network, it needs to know the MAC address of the destination device. The device can send an ARP request message to the local network, asking for the MAC address of the destination device. If the destination device is on the same network, it will respond with its MAC address. The device can then use the MAC address to send the data directly to the destination device.</p>
+<p>In summary, the “ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28” message is used to request the MAC address of a device with the IP address 10.0.0.1, so that the device with the IP address 10.0.0.2 can communicate with it on a local network.</p>
+<p>目前的消息提示看起来和 client2 没有多少关系。</p>
+<h2 id="Step2-dpdk-的配置"><a href="#Step2-dpdk-的配置" class="headerlink" title="Step2 - dpdk 的配置"></a>Step2 - dpdk 的配置</h2><p><code>git clone dpdk-framework</code> 到 <code>/home</code> 路径，然后按照 <code>gitlab</code> 上面的指令进行编译。</p>
+<p>其中绑定的一步使用如下指令：<code>dpdk/usertools/dpdk-devbind.py --bind=uio_pci_generic eth1</code></p>
+<p>整合编译脚本</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">apt-get update</span><br><span class="line">apt-get install meson</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> dpdk</span><br><span class="line">meson build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">ninja</span><br><span class="line">ninja install</span><br><span class="line">ldconfig</span><br><span class="line"></span><br><span class="line">modprobe uio</span><br><span class="line">modprobe uio_pci_generic</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> ../..</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth1</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth2</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth3</span><br><span class="line"></span><br><span class="line"><span class="built_in">mkdir</span> /mnt/huge</span><br><span class="line">mount -t hugetlbfs nodev /mnt/huge</span><br><span class="line"><span class="built_in">echo</span> 256 &gt; /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages</span><br><span class="line"></span><br><span class="line">cmake .</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>运行示例程序</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">(git)-[main] # cd examples/</span><br><span class="line">(git)-[main] # ls</span><br><span class="line">dpdk-helloworld  dpdk-helloworld.p  helloworld</span><br><span class="line">(git)-[main] # ./dpdk-helloworld</span><br><span class="line">EAL: Detected 3 lcore(s)</span><br><span class="line">EAL: Detected 1 NUMA nodes</span><br><span class="line">EAL: Detected static linkage of DPDK</span><br><span class="line">EAL: Multi-process socket /var/run/dpdk/rte/mp_socket</span><br><span class="line">EAL: Selected IOVA mode &#x27;PA&#x27;</span><br><span class="line">EAL: No available hugepages reported in hugepages-1048576kB</span><br><span class="line">EAL: Probing VFIO support...</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:03:00.0 (socket 0)</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:04:00.0 (socket 0)</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:05:00.0 (socket 0)</span><br><span class="line">EAL: No legacy callbacks, legacy socket not created</span><br><span class="line">hello from core 1</span><br><span class="line">hello from core 2</span><br><span class="line">hello from core 0</span><br></pre></td></tr></table></figure>
+
+<p>因为虚拟机每 24 小时就要重新设置，所以设计 <code>sh</code> 文件来帮助自动化配置。</p>
+<h3 id="DPDK"><a href="#DPDK" class="headerlink" title="DPDK"></a>DPDK</h3><p>DPDK 全称为 Date planedevelopment kit，是一个用来进行包数据处理加速的软件库。DPDK 的特性之一是能够在网络接口之间转发数据包，通常称为数据包转发或数据包交换。</p>
+<p>传统处理数据包的时候：1. 首先将数据从物理网卡拷贝到内核协议栈；2. 从内核空间拷贝到用户空间。</p>
+<p><img data-src="/acn-router-project/image1.png"></p>
+<p>DPDK 目标在于对于网路数据的高速处理，重要创新就是零拷贝技术，将网卡数据直接转移到用户态空间运行。</p>
+<p><img data-src="/acn-router-project/image2.png"></p>
+<h4 id="转发"><a href="#转发" class="headerlink" title="转发"></a>转发</h4><p>数据包转发是在一个网络接口上接收数据包，检查数据包的目的地址，然后根据目的地址将数据包从另一个接口发送出去的过程。这允许路由器和交换机等设备连接多个网络并在它们之间转发流量。</p>
+<h4 id="Hugepage"><a href="#Hugepage" class="headerlink" title="Hugepage"></a>Hugepage</h4><p>基础概念</p>
+<ol>
+<li>物理内存</li>
+<li>虚拟内存 - 使用 MMU 进行转换。</li>
+<li>页表 - 保存虚拟内存地址和物理内存地址的映射关系。MMU 从页表中找到虚拟内存地址所映射的物理内存地址，然后把物理内存地址交给 CPU。</li>
+<li>TLB - 高速缓存。TLB 缓存虚拟内存地址与其映射的物理内存地址。MMU 首先查询 TLB，如果找不到再回溯查找页表。</li>
+<li>Hugepages - 大于 4KB 的内存页作为内存映射单位的机制叫 HugePages。</li>
+</ol>
+<p>虚拟内存地址包含多种索引字段 + 偏移量部分。内存页变大，需要扩大对应的偏移量。这种情况下使用更少的索引即可。</p>
+<h4 id="DPDK-Library"><a href="#DPDK-Library" class="headerlink" title="DPDK Library"></a>DPDK Library</h4><ol>
+<li><p>rte_eal_mp_wait_lcore()<br> Wait for an event or a message on the current lcore (logical core).</p>
+<p> In DPDK, an lcore is a logical representation of a CPU core that can be used to run code in parallel. The <code>rte_eal_mp_wait_lcore()</code> function is typically used in the main loop of a DPDK application to wait for an event or a message to be received on the current lcore.</p>
+<p> It’s important to note that the <code>rte_eal_mp_wait_lcore()</code> function should only be used in the main loop of a DPDK application and not in a separate thread.</p>
+</li>
+<li><p>rte_eal_remote_launch()<br> The <code>rte_eal_remote_launch()</code> function is part of the Environment Abstraction Layer (EAL) of DPDK, which provides a common interface for accessing the underlying hardware and operating system resources. The EAL also manages the initialization and finalization of the DPDK environment, as well as the communication between different DPDK processes.</p>
+<p> The rte_eal_remote_launch function allows a DPDK application to be launched on a remote host and communicate with the local host through a shared memory region. This can be useful in scenarios where the DPDK application needs to be distributed across multiple hosts, or where the local host does not have the necessary hardware resources to run the application.</p>
+</li>
+<li><p>rte_eth_tx_burst()<br> The <code>rte_eth_tx_burst()</code> transmit a burst of packets to an Ethernet device.</p>
+<p> This function takes the following arguments:</p>
+<ol>
+<li>uint16_t port_id: The ID of the port to transmit the packets to.</li>
+<li>uint16_t queue_id: The ID of the transmit queue to use.</li>
+<li>struct rte_mbuf **tx_pkts: An array of pointers to the packets to be transmitted.</li>
+<li>uint16_t nb_pkts: The number of packets to transmit.</li>
+</ol>
+</li>
+</ol>
+<p>The function returns the number of packets that were successfully transmitted.</p>
+<h2 id="Step3-Forwarder"><a href="#Step3-Forwarder" class="headerlink" title="Step3 - Forwarder"></a>Step3 - Forwarder</h2><p>发送端的指令 - <code>ping -I eth1 192.168.0.2</code><br>接收端的指令 - <code>tcpdump -i eth1</code></p>
+<p>首先是单纯的 Forwarder：</p>
+<ul>
+<li>执行任务：client1 发送消息给 client2</li>
+<li>原本 Step2 的实现是 client2 的命令行没有提示，即没有收到消息。</li>
+<li>调用 <code>.fwd -s 0 -d 1</code> 之后，client2 命令行中收到对应的消息，意思是收到原本在 client1 中的信息。</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">19:47:58.670459 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br><span class="line">19:47:59.104091 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p>Code analyse:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Main function of the thread performing the packet processing.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">run_thread</span><span class="params">(<span class="type">void</span>*arg)</span></span><br><span class="line">&#123;</span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config</span> =</span> (<span class="keyword">struct</span> thread_config*)arg;</span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">rte_mbuf</span> *<span class="title">bufs</span>[64];</span></span><br><span class="line"> <span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line"> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*Receive a burst of packets*/</span></span><br><span class="line">  <span class="type">uint16_t</span> rx = rte_eth_rx_burst(config-&gt;src_interface, config-&gt;src_queue, bufs, <span class="number">64</span>);</span><br><span class="line">  <span class="keyword">if</span> (!rx)</span><br><span class="line">   usleep(<span class="number">100</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">uint16_t</span> i = <span class="number">0</span>; i &lt; rx; ++i)</span><br><span class="line">   handle_packet(config, bufs[i]);</span><br><span class="line">  recv_pkts += rx;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*statistics*/</span></span><br><span class="line">  <span class="keyword">if</span> (rte_get_tsc_cycles() - timestamp &gt; rte_get_timer_hz())</span><br><span class="line">  &#123;</span><br><span class="line">   timestamp = rte_get_tsc_cycles();</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;Received pkts: %i, sent pkts: %i\n&quot;</span>, recv_pkts, sent_pkts);</span><br><span class="line">  &#125;</span><br><span class="line"> &#125;</span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>This code is a simple DPDK-based packet forwarding application. It receives packets on a source interface, performs some dummy processing on the packets, and then forwards the packets to a destination interface.</p>
+<p>The main function of the program is run_thread(), which is executed in a separate thread for each lcore. The function performs the following steps:</p>
+<ol>
+<li>It receives a burst of packets from the source interface using rte_eth_rx_burst().</li>
+<li>It processes each packet by calling the handle_packet() function.</li>
+<li>It sends the processed packets to the destination interface using transmit_packet().</li>
+<li>It prints some statistics about the received and sent packets.</li>
+</ol>
+<p>The handle_packet() function performs some dummy processing on the packet by modifying the source MAC address of the packet. The transmit_packet() function simply sends the packet to the specified hardware queue of the destination interface using rte_eth_tx_burst().</p>
+<p>The main() function initializes DPDK and sets up the source and destination interfaces using the command-line arguments passed to the program. It then creates a separate thread for each lcore and launches the run_thread() function in each thread using rte_eal_remote_launch().</p>
+</blockquote>
+<p>在配置 <code>dpdk</code> 之后，运行单向的<code>fwd</code> 程序，<code>client1</code> 可以向 <code>client2</code> 发送请求。</p>
+<p>需要注意在每次重新激活环境后，都需要重新启动：</p>
+<ul>
+<li>router 使用 dpdk 文件夹下面的 router.sh</li>
+<li>client 使用 根目录的 clientx.sh</li>
+</ul>
+<h2 id="Step4-Bidirectional-Forwarder"><a href="#Step4-Bidirectional-Forwarder" class="headerlink" title="Step4 - Bidirectional Forwarder"></a>Step4 - Bidirectional Forwarder</h2><p>双向 Forwarder 的实现 使用多线程进行配置，需要注意：我们的程序是 C 语言，需要使用 <code>#include&lt;pthread&gt;</code> 来进行设置。</p>
+<p>核心代码</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">pthread_t</span> threads[<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// Start the first thread</span></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;Forwarding from interface %i to interface %i\n&quot;</span>, src_interface, dst_interface);</span><br><span class="line">pthread_create(&amp;threads[<span class="number">0</span>], <span class="literal">NULL</span>, start_thread, <span class="literal">NULL</span>);</span><br><span class="line">pthread_join(threads[<span class="number">0</span>], <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// switch the port interface</span></span><br><span class="line"><span class="type">int</span> swp = src_interface;</span><br><span class="line">src_interface = dst_interface;</span><br><span class="line">dst_interface = swp;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Start the seconde thread</span></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;Forwarding from interface %i to interface %i\n&quot;</span>, src_interface, dst_interface);</span><br><span class="line">pthread_create(&amp;threads[<span class="number">1</span>], <span class="literal">NULL</span>, start_thread, <span class="literal">NULL</span>);</span><br><span class="line">pthread_join(threads[<span class="number">1</span>], <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">rte_eal_mp_wait_lcore();</span><br></pre></td></tr></table></figure>
+
+<p>实现后，在两个 client 都进行 ping 的情况下，应该都会收到对应的消息。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">19:26:18.399248 ARP, Request who-has 192.168.0.1 tell 192.168.0.2, length 28</span><br><span class="line">19:26:18.816249 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用 pthread</strong></p>
+<p>由于是 c 语言，所以使用 <code>#include&lt;pthread.h&gt;</code>。</p>
+<p>然后对应创建两个线程 s，对于函数 <code>run_thread()</code> 和 <code>handle_packet()</code> 也进行对应返回类型的修改。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Initialize a thread handling the packet processing.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">start_thread</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config1</span> =</span> (<span class="keyword">struct</span> thread_config*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> thread_config));</span><br><span class="line"> config1-&gt;src_interface = src_interface;</span><br><span class="line"> config1-&gt;src_queue = <span class="number">0</span>;</span><br><span class="line"> config1-&gt;dst_interface = dst_interface;</span><br><span class="line"> config1-&gt;dst_queue = <span class="number">0</span>;</span><br><span class="line"> <span class="comment">// rte_eal_remote_launch(run_thread, config1, 1);</span></span><br><span class="line"> pthread_create(&amp;thread1, <span class="literal">NULL</span>, run_thread, config1);</span><br><span class="line"></span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config2</span> =</span> (<span class="keyword">struct</span> thread_config*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> thread_config));</span><br><span class="line"> config2-&gt;src_interface = dst_interface;</span><br><span class="line"> config2-&gt;src_queue = <span class="number">0</span>;</span><br><span class="line"> config2-&gt;dst_interface = src_interface;</span><br><span class="line"> config2-&gt;dst_queue = <span class="number">0</span>;</span><br><span class="line"> <span class="comment">// rte_eal_remote_launch(run_thread, config2, 1);</span></span><br><span class="line"> pthread_create(&amp;thread2, <span class="literal">NULL</span>, run_thread, config2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在最后使用 <code>pthreaed.join()</code> - 让主线程等待子线程结束后再结束，所以至关重。</p>
+<h2 id="补充知识"><a href="#补充知识" class="headerlink" title="补充知识"></a>补充知识</h2><p><a target="_blank" rel="noopener" href="https://wizardforcel.gitbooks.io/network-basic/content/0.html">网络基本功系列</a></p>
+<h1 id="Problem-2"><a href="#Problem-2" class="headerlink" title="Problem 2"></a>Problem 2</h1><h2 id="Step-1-CLI"><a href="#Step-1-CLI" class="headerlink" title="Step 1 - CLI"></a>Step 1 - CLI</h2><p>重点是 <code>int parse_args(int argc, char **argv)</code>：使用 正则表达式 进行划分。核心部分如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">parse_args</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> **argv)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> opt;</span><br><span class="line">    <span class="keyword">while</span> ((opt = getopt(argc, argv, <span class="string">&quot;p:r:&quot;</span>)) != EOF)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">switch</span> (opt)</span><br><span class="line">        &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">&#x27;p&#x27;</span>:</span><br><span class="line">        <span class="keyword">case</span> <span class="string">&#x27;r&#x27;</span>:</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">sscanf</span>(optarg, <span class="string">&quot;%d,%s&quot;</span>, &amp;ports[num_ports].interface_id, ports[num_ports].ip_address);</span><br><span class="line"><span class="built_in">sscanf</span>(optarg, <span class="string">&quot;%[^,],%[^,],%d&quot;</span>, routes[num_routes].destination, routes[num_routes].mac_address, &amp;routes[num_routes].interface_id);</span><br></pre></td></tr></table></figure>
+
+<h2 id="Step-2-Multithread-Router-Archtecture"><a href="#Step-2-Multithread-Router-Archtecture" class="headerlink" title="Step 2 - Multithread Router Archtecture"></a>Step 2 - Multithread Router Archtecture</h2><p>这个在 Problem1 的基础上进行扩展。从一个接收，然后扩展到三个 eth 上面。</p>
+<p>首先实现的版本不需要根据命令行的输入进行检测，而是直接三个线程对接三个虚拟机，并且每个都有独立转发到对面全部三个虚拟机的能力。</p>
+<p>RX &#x2F; TX Queue</p>
+<ol>
+<li><p>RX Queue - receive queue stores incoming packets on a network device.</p>
+</li>
+<li><p>TX Queue - transmit queue store packets that are waiting to be transmitted by a network device.</p>
+</li>
+<li><p>The queue is populated by the device’s hardware and is used to store packets that are received by the device.</p>
+</li>
+</ol>
+<p>基于展示的这些特质，实际上我们对于每组转发只需要使用一对 <code>rx/tx queue</code>，就可以实现对于多个目标的转发。</p>
+<p>我们需要实现的从三个不同目标接收到信息，然后进行转发。初始化的时候给每个 <code>interface</code> 配上 <code>num_ports</code> 个 <code>queues</code>。</p>
+<p>【实际实践的时候，比较神奇】只需要一组 <code>Rx/Tx Queue</code>，就可以进行接受和发送的操作了。即便是他们都是使用 <code>dst_queue=0</code> 但是还是可以正常运转。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* Initialize a device by configuring hardware queues.</span></span><br><span class="line"><span class="comment">*</span></span><br><span class="line"><span class="comment">* Number of allocated queues for device with port_id:</span></span><br><span class="line"><span class="comment">* - num_queues rx/tx queues</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">configure_device</span><span class="params">(<span class="type">uint8_t</span> port_id, <span class="type">uint16_t</span> num_queues)</span> &#123;</span><br><span class="line">    check_dpdk_error(rte_eth_promiscuous_enable(port_id), <span class="string">&quot;enable promisc mode&quot;</span>);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_eth_conf</span> <span class="title">port_conf</span> =</span> &#123; <span class="number">0</span> &#125;;</span><br><span class="line">    check_dpdk_error(rte_eth_dev_configure(port_id, num_queues, num_queues, &amp;port_conf), <span class="string">&quot;configure device&quot;</span>);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_eth_dev_info</span> <span class="title">dev_info</span>;</span></span><br><span class="line">    rte_eth_dev_info_get(port_id, &amp;dev_info);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">uint16_t</span> <span class="built_in">queue</span> = <span class="number">0</span>; <span class="built_in">queue</span> &lt; num_queues; ++<span class="built_in">queue</span>) &#123;</span><br><span class="line">      check_dpdk_error(rte_eth_tx_queue_setup(port_id, <span class="built_in">queue</span>, TX_DESCS, rte_socket_id(), &amp;dev_info.default_txconf), <span class="string">&quot;configure tx queue&quot;</span>);</span><br><span class="line">      check_dpdk_error(rte_eth_rx_queue_setup(port_id, <span class="built_in">queue</span>, RX_DESCS, rte_socket_id(), &amp;dev_info.default_rxconf, create_mempool()), <span class="string">&quot;configure rx queue&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    check_dpdk_error(rte_eth_dev_start(port_id), <span class="string">&quot;starting device&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>疑问</strong><br><code>pthread_join()</code> 一定要放在外面吗？</p>
+<p>是的，如果在每个子函数中就开始 join ()，那么就只有第一个被初始化。后面的没有机会执行。</p>
+<h2 id="Step-3-IPV4-Check"><a href="#Step-3-IPV4-Check" class="headerlink" title="Step 3 - IPV4 Check"></a>Step 3 - IPV4 Check</h2><blockquote>
+<p>IP header checks</p>
+<p>RFC 1812 describes checks performed by routers on IPv4 packets<br>Drop packets if they are invalid</p>
+</blockquote>
+<p>研究的原型函数：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (eth_hdr-&gt;ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;is ipv4 format!\n\n\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="编程收获"><a href="#编程收获" class="headerlink" title="编程收获"></a>编程收获</h3><h4 id="1-跨文件全局变量"><a href="#1-跨文件全局变量" class="headerlink" title="1. 跨文件全局变量"></a>1. 跨文件全局变量</h4><ol>
+<li>普通的全局变量 - 使用 extern 即可</li>
+<li>全局数组的定义</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// helper.cpp</span></span><br><span class="line"><span class="type">int</span> tmp[NUM_INT];</span><br><span class="line"></span><br><span class="line"><span class="comment">// helper.h</span></span><br><span class="line"><span class="keyword">extern</span> in</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-rte-ether-addr"><a href="#2-rte-ether-addr" class="headerlink" title="2. rte_ether_addr"></a>2. rte_ether_addr</h4><ol>
+<li>定义</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">- Ethernet address:</span></span><br><span class="line"><span class="comment">- A universally administered address is uniquely assigned to a device by its</span></span><br><span class="line"><span class="comment">- manufacturer. The first three octets (in transmission order) contain the</span></span><br><span class="line"><span class="comment">- Organizationally Unique Identifier (OUI). The following three (MAC-48 and</span></span><br><span class="line"><span class="comment">- EUI-48) octets are assigned by that organization with the only constraint</span></span><br><span class="line"><span class="comment">- of uniqueness.</span></span><br><span class="line"><span class="comment">- A locally administered address is assigned to a device by a network</span></span><br><span class="line"><span class="comment">- administrator and does not contain OUIs.</span></span><br><span class="line"><span class="comment">- See &lt;http://standards.ieee.org/regauth/groupmac/tutorial.html&gt;</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_addr</span> &#123;</span></span><br><span class="line">    <span class="type">uint8_t</span> addr_bytes[RTE_ETHER_ADDR_LEN]; <span class="comment">/**&lt; Addr bytes in tx order */</span></span><br><span class="line">&#125; __rte_aligned(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><p>源头是 <code>rte_mbuf</code></p>
+<p> 输出 <code>buf</code> 内存储的结果</p>
+</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_mbuf</span> *<span class="title">buf</span>;</span></span><br><span class="line">rte_pktmbuf_dump(<span class="built_in">stdout</span>, buf, rte_pktmbuf_pkt_len(buf));</span><br><span class="line">dump mbuf at <span class="number">0x1018b49c0</span>, iova=<span class="number">0x4d2b4a40</span>, buf_len=<span class="number">1728</span></span><br><span class="line">  pkt_len=<span class="number">42</span>, ol_flags=<span class="number">0</span>, nb_segs=<span class="number">1</span>, port=<span class="number">1</span>, ptype=<span class="number">0</span></span><br><span class="line">  segment at <span class="number">0x1018b49c0</span>, data=<span class="number">0x1018b4ac0</span>, len=<span class="number">42</span>, off=<span class="number">128</span>, refcnt=<span class="number">1</span></span><br><span class="line">  Dump data at [<span class="number">0x1018b4ac0</span>], len=<span class="number">42</span></span><br><span class="line"><span class="number">00000000</span>: FF FF FF FF FF FF <span class="number">52</span> <span class="number">54</span> <span class="number">00</span> FF <span class="number">02</span> <span class="number">00</span> <span class="number">08</span> <span class="number">06</span> <span class="number">00</span> <span class="number">01</span> | ......RT........</span><br><span class="line"><span class="number">00000010</span>: <span class="number">08</span> <span class="number">00</span> <span class="number">06</span> <span class="number">04</span> <span class="number">00</span> <span class="number">01</span> <span class="number">52</span> <span class="number">54</span> <span class="number">00</span> FF <span class="number">02</span> <span class="number">00</span> C0 A8 <span class="number">00</span> <span class="number">02</span> | ......RT........</span><br><span class="line"><span class="number">00000020</span>: <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> C0 A8 <span class="number">00</span> <span class="number">01</span>                   | ..........</span><br><span class="line">从 buf 转换到 rte_ether_hdr 的形式</span><br><span class="line"></span><br><span class="line"><span class="comment">/*map packet buffer to ethernet struct*/</span></span><br><span class="line">    <span class="keyword">struct</span> rte_ether_hdr *eth = rte_pktmbuf_mtod(buf, <span class="keyword">struct</span> rte_ether_hdr*);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="IPV4-检测"><a href="#IPV4-检测" class="headerlink" title="IPV4 检测"></a>IPV4 检测</h3><blockquote>
+<p>One of the responsibilities of an IPv4 router is to perform checks on incoming IPv4 packets to ensure that they are valid. This includes verifying that the packet’s header fieldsare correctly formatted and that the packet’s checksum is correct.</p>
+<p>对应的思路：</p>
+<p>To check if an IPv4 packet contained in a DPDK mbuf is valid.</p>
+<ol>
+<li><p>Check the packet length: Use the pkt_len field of the rte_mbuf structure to make sure the packet is at least 20 bytes long, as that is the minimum length for an IPv4 packet.</p>
+</li>
+<li><p>Get a pointer to the packet data: Use the mtod function to get a pointer to the start of the packet data contained in the mbuf.</p>
+</li>
+<li><p>Check the version number: The first byte of the packet contains the version number. For an IPv4 packet, this should be</p>
+</li>
+<li><p>Check the header length: The second byte of the packet contains the header length, which indicates the length of the IPv4 header in 32-bit words. Make sure this value is at least 5, as that is the minimum length for an IPv4 header.</p>
+</li>
+<li><p>Check the total length field: The total length field, which is located in bytes 2 and 3 of the packet, indicates the total length of the packet in bytes. Make sure this value is greater than or equal to the header length.</p>
+</li>
+<li><p>Check the checksum: The checksum is located in bytes 10 and 11 of the packet. To validate the checksum, you can calculate the checksum for the packet and compare it to the value in the packet. If the values do not match, the packet is invalid.</p>
+</li>
+</ol>
+<p>7 .Check the source and destination addresses: The source and destination addresses are located in bytes 12 through 15 and 16 through 19, respectively. Make sure these addresses are properly formatted and not reserved or invalid.</p>
+<p>If any of these checks fail, you can free the mbuf using the rte_pktmbuf_free function and discard the packet.</p>
+</blockquote>
+<h2 id="Step4-ARP-Reply"><a href="#Step4-ARP-Reply" class="headerlink" title="Step4 - ARP Reply"></a>Step4 - ARP Reply</h2><p>项目中最精华的部分就是实现 ARP Reply，直观表现是 client 可以收到 ARP，最终的影响是 client 获取到了需要的 MAC 地址，能够互相 ping 通。</p>
+<h3 id="Ethernet-header-和-ARP-header"><a href="#Ethernet-header-和-ARP-header" class="headerlink" title="Ethernet header 和 ARP header"></a>Ethernet header 和 ARP header</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_hdr</span> *<span class="title">eth_hdr</span> =</span> rte_pktmbuf_mtod(buf, <span class="keyword">struct</span> rte_ether_hdr*);</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_arp_hdr</span> *<span class="title">arp_hdr</span> =</span> (<span class="keyword">struct</span> rte_arp_hdr*)(eth_hdr + <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在对应的位置获取并且填入相关的信息。</p>
+<h3 id="IP-Address-amp-MAC-Address"><a href="#IP-Address-amp-MAC-Address" class="headerlink" title="IP Address &amp; MAC Address"></a>IP Address &amp; MAC Address</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">send_arp_reply(&amp;arp_hdr-&gt;arp_data.arp_tha, arp_hdr-&gt;arp_data.arp_tip, &amp;arp_hdr-&gt;arp_data.arp_sha, arp_hdr-&gt;arp_data.arp_sip, config-&gt;interface, buf);</span><br></pre></td></tr></table></figure>
+
+<h3 id="发送-ARP-Reply-包"><a href="#发送-ARP-Reply-包" class="headerlink" title="发送 ARP Reply 包"></a>发送 ARP Reply 包</h3><p>实际上和发送一个普通包的效果一样，只是类型目前是 <code>RTE_ETHER_TYPE_ARP</code>。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">send_arp_reply</span><span class="params">(<span class="keyword">struct</span> rte_ether_addr *src_mac, <span class="type">uint32_t</span> src_ip,</span></span><br><span class="line"><span class="params"><span class="keyword">struct</span> rte_ether_addr*dst_mac, <span class="type">uint32_t</span> dst_ip,</span></span><br><span class="line"><span class="params">                   <span class="type">uint8_t</span> port_id, <span class="keyword">struct</span> rte_mbuf *mbuf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Successfully here!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Initialize the Ethernet header</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_hdr</span> *<span class="title">eth_hdr</span> =</span> rte_pktmbuf_mtod(mbuf, <span class="keyword">struct</span> rte_ether_hdr *);</span><br><span class="line">    rte_ether_addr_copy(dst_mac, &amp;eth_hdr-&gt;d_addr);</span><br><span class="line">    rte_ether_addr_copy(src_mac, &amp;eth_hdr-&gt;s_addr);</span><br><span class="line">    eth_hdr-&gt;ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Initialize the ARP header</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_arp_hdr</span> *<span class="title">arp_hdr</span> =</span> (<span class="keyword">struct</span> rte_arp_hdr *)(eth_hdr + <span class="number">1</span>);</span><br><span class="line">    arp_hdr-&gt;arp_hardware = rte_cpu_to_be_16(RTE_ARP_HRD_ETHER);</span><br><span class="line">    arp_hdr-&gt;arp_protocol = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);</span><br><span class="line">    arp_hdr-&gt;arp_hlen = <span class="number">6</span>;</span><br><span class="line">    arp_hdr-&gt;arp_plen = <span class="number">4</span>;</span><br><span class="line">    arp_hdr-&gt;arp_opcode = rte_cpu_to_be_16(RTE_ARP_OP_REPLY);</span><br><span class="line">    rte_ether_addr_copy(src_mac, &amp;arp_hdr-&gt;arp_data.arp_sha);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_sip = src_ip;</span><br><span class="line">    rte_ether_addr_copy(dst_mac, &amp;arp_hdr-&gt;arp_data.arp_tha);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_tip = rte_cpu_to_be_32(dst_ip);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_tip = dst_ip;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Send the ARP reply packet</span></span><br><span class="line">    <span class="type">int</span> ret = send_to_device(port_id, mbuf);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Error sending packet</span></span><br><span class="line">        rte_pktmbuf_free(mbuf);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">send_to_device</span><span class="params">(<span class="type">uint8_t</span> interface, <span class="keyword">struct</span> rte_mbuf *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Sending ARP Back: &quot;</span>);</span><br><span class="line">    rte_pktmbuf_dump(<span class="built_in">stdout</span>, buf, rte_pktmbuf_pkt_len(buf));</span><br><span class="line">    <span class="keyword">while</span> (!rte_eth_tx_burst(interface, interface, &amp;buf, <span class="number">1</span>))</span><br><span class="line">        ;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要注意，这个时候如果只是发送 ARP Reply，但是里面信息不对，是没有办法 ping 通的。</p>
+<p>我最开始就有这个问题：包中包括的 ip 地址 (uint32_t 转换为 ip 格式）是正好倒过来的，所以 client 收到了 ARP Reply 但是不能建立有效链接。</p>
+<p>修正这个问题后，终于可以 ping 通。</p>
+<p><img data-src="/acn-router-project/image3.png"></p>
+<h1 id="Problem-3"><a href="#Problem-3" class="headerlink" title="Problem 3"></a>Problem 3</h1><h2 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h2><ol>
+<li>makefile &amp; CMakeLists.txt 的关系<br>在有了 CMakeLists.txt 之后，可以在 <code>cmake .</code> 的时候生成 Makefile。所以就不用在意 Makefile 的内容。主要修改 CMakeLists.txt。</li>
+</ol>
+<p>这也就解释了编译时候的顺序，首先通过 <code>cmake .</code> 来编译出来 <code>Makefile</code>, 然后通过 <code>make</code> 来实现原始方式的执行。</p>
+<ol start="2">
+<li>测试使用的 gtest 框架<br>使用 <code>ASSERT_TRUE</code> 或 <code>EXPECT_TRUE</code> 来进行断言。如果结果不为真，则测试失败。<br>两者的区别是：</li>
+</ol>
+<ul>
+<li>ASSERT: 失败后就退出当前函数。</li>
+<li>EXPECT: 失败后还会继续运行程序，只有在最后的时候才会显示所有的错误记录。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 断言 a 是否等于 1</span></span><br><span class="line">ASSERT_TRUE(a == <span class="number">1</span>) &lt;&lt; <span class="string">&quot;a 应该等于 1&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 断言 b 是否等于 3</span></span><br><span class="line">EXPECT_TRUE(b == <span class="number">3</span>) &lt;&lt; <span class="string">&quot;b 应该等于 3&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 断言 c 是否等于 1</span></span><br><span class="line">EXPECT_EQ(c, <span class="number">1</span>) &lt;&lt; <span class="string">&quot;c 应该等于 1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>位运算<br>这次的 project 中我们需要操作很多位运算。简单记录一下。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建 16 bit 元素的数组</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> tbl24 int16_t</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tbl24</span> <span class="title">TBL24</span>[<span class="title">TBL24_SIZE</span>];</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过位移创建 IPV4 的地址</span></span><br><span class="line"><span class="comment">/** Create IPv4 address */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> RTE_IPV4(a, b, c, d) ((uint32_t)(((a) &amp; 0xff) &lt;&lt; 24) | \</span></span><br><span class="line"><span class="meta">        (((b) &amp; 0xff) &lt;&lt; 16) | \</span></span><br><span class="line"><span class="meta">        (((c) &amp; 0xff) &lt;&lt; 8)  | \</span></span><br><span class="line"><span class="meta">        ((d) &amp; 0xff))</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cmake -DCMAKE_BUILD_TYPE=Debug .</span><br></pre></td></tr></table></figure>
+
+<h1 id="Problem-4"><a href="#Problem-4" class="headerlink" title="Problem 4"></a>Problem 4</h1><p>Solved</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/pytest-learning/" rel="prev" title="Pytest">
+                  <i class="fa fa-chevron-left"></i> Pytest
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/cpp-coordinator-worker/" rel="next" title="C++ 分布式">
+                  C++ 分布式 <i class="fa fa-chevron-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">David Stark</span>
+  </div>
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/pisces/" rel="noopener" target="_blank">NexT.Pisces</a> 强力驱动
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="reading-progress-bar"></div>
+
+  <a href="https://github.com/david990917" class="github-corner" title="在 GitHub 上关注我" aria-label="在 GitHub 上关注我" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js" integrity="sha256-2Pmvv0kuTBOenSvLm6bvfBSSHrUJ+3A7x6P5Ebd07/g=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.5.7/jquery.fancybox.min.js" integrity="sha256-yt2kYMy0w8AbtF89WXb2P1rfjcP/HTHLT7097U8Y5b8=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lozad.js/1.16.0/lozad.min.js" integrity="sha256-mOFREFhqmHeQbXpK2lp4nA3qooVgACfh88fpJftLBbc=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pangu/4.0.7/pangu.min.js" integrity="sha256-j+yj56cdEY2CwkVtGyz18fNybFGpMGJ8JxG3GSyO2+I=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.4.1/search.js" integrity="sha256-1kfA5uHPf65M5cphT2dvymhkuyHPQp5A53EGZOnOLmc=" crossorigin="anonymous"></script>
+<script src="/js/third-party/search/local-search.js"></script>
+
+  <script class="next-config" data-name="pdf" type="application/json">{"object_url":{"url":"https://cdnjs.cloudflare.com/ajax/libs/pdfobject/2.2.12/pdfobject.min.js","integrity":"sha256-g2xji1rlE3KsGVClvuxTbcR0Kn2+wtQADSff2Tbb4zA="},"url":"/lib/pdf/web/viewer.html"}</script>
+  <script src="/js/third-party/tags/pdf.js"></script>
+
+
+
+  <script src="/js/third-party/fancybox.js"></script>
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"none","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js"></script>
+
+
+
+</body>
+</html>

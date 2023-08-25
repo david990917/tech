@@ -1,0 +1,1461 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>Pratikum-Xrp</title>
+    <url>/pratikum-xrp/</url>
+    <content><![CDATA[<p>TUM 的 Pratikum 使用 XRP，本文记录相关的内容和研究历程。</p>
+<p>参考论文：<a href="https://www.usenix.org/conference/osdi22/presentation/zhong">XRP: In-Kernel Storage Functions with eBPF</a></p>
+<h2 id="运行环境配置-amp-背景知识"><a href="#运行环境配置-amp-背景知识" class="headerlink" title="运行环境配置 &amp; 背景知识"></a>运行环境配置 &amp; 背景知识</h2><h3 id="使用-nix-shell"><a href="#使用-nix-shell" class="headerlink" title="使用 nix-shell"></a>使用 nix-shell</h3><p>Nix 是一个纯函数式包管理器，旨在使软件包管理可靠且可重现。官方网站</p>
+<p><code>nix-shell</code> 进入新的命令行。</p>
+<h3 id="使用虚拟机"><a href="#使用虚拟机" class="headerlink" title="使用虚拟机"></a>使用虚拟机</h3><p>因为任务涉及到内核的修改，所以使用虚拟机，避免对于主机的直接修改。但是相较于 bare-metal 性能有所下降。</p>
+<p><code>sh startvm.sh</code> 启动虚拟机。</p>
+<p>或使用 <code>nohup sh startvm.sh &amp;</code>，其中 <code>nohup</code> 是不挂断的意思，<code>&amp;</code> 表示后台运行。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line"><span class="meta prompt_">#</span><span class="language-bash">!/bin/bash</span></span><br><span class="line"></span><br><span class="line">IMG=xrp.cow  # name of the image</span><br><span class="line">MEM=32       # gigabytes of memory to have</span><br><span class="line">CPU=6        # cpu cores to have</span><br><span class="line">VNC=1        # vnc port to use: 0 -&gt; 5900, 1 -&gt; 5901, etc</span><br><span class="line">SSH=10099    # ssh port to use</span><br><span class="line">DEV=51:00.0  # NVMe device bus id</span><br><span class="line"></span><br><span class="line">exec qemu-system-x86_64 \</span><br><span class="line">    -drive file=$&#123;IMG&#125;,format=qcow2 \</span><br><span class="line">    -m $&#123;MEM&#125;G \</span><br><span class="line">    -smp $CPU \</span><br><span class="line">    -cpu host \</span><br><span class="line">    -device vfio-pci,host=$DEV \</span><br><span class="line">    -enable-kvm \</span><br><span class="line">    -nographic \</span><br><span class="line">    -vnc :$VNC \</span><br><span class="line">    -net user,hostfwd=tcp::$&#123;SSH&#125;-:22 \</span><br><span class="line">    -net nic</span><br></pre></td></tr></table></figure>
+
+<p>目前的链接情况是在可访问的服务器 - <code>adel</code> 上面创建虚拟机 <code>xrp</code>。在 <code>~/.ssh/config</code> 里面进行配置，通过 <code>tunnel</code> 可以直接访问虚拟机。</p>
+<h3 id="BPF-背景知识-amp-eBPF-amp-XDP"><a href="#BPF-背景知识-amp-eBPF-amp-XDP" class="headerlink" title="BPF 背景知识 &amp; eBPF &amp; XDP"></a>BPF 背景知识 &amp; eBPF &amp; XDP</h3><p><a href="https://linux.cn/article-9507-1.html">深入理解 BPF：一个阅读清单</a></p>
+<p>BPF - Berkeley Packet Filter，是类 UNIX 系统上数据链路层的原始接口。用户态的进程可以提供一个过滤程序来生命它想收到哪儿些数据包，从而避免内核空间到用户空间的无用数据包复制行为。</p>
+<p>本质在于实现内核空间执行高效安全程序的机制，可以开发新的可以即时加载的内核模块。最开始是由用户空间注入到内核的一个简单字节码构成，<code>tcpdump</code> 是基于 <code>BPF</code> 的。</p>
+<p>特点：</p>
+<ul>
+<li>BPF Hooks: 能够加载 BPF 程序的位置</li>
+<li>BPF Map: 存储数据、交换信息的桥梁</li>
+<li>BOF HELPERS: 辅助函数，通过这个接口调用内核模块，更加稳定。</li>
+</ul>
+<p>eBPF - extented BPF，从 Linux 3.18 内核版本开始。<br>XDP - eXpress Data Path</p>
+<p>[eXpress Data Path (XDP)](<a href="https://tech.hanwen.cloud/pratikum-xrp/#:~:text=eXpress">https://tech.hanwen.cloud/pratikum-xrp/#:~:text=eXpress</a> Data Path (XDP))</p>
+<p>A programmable, high performance, specialized application, packet processor in the Linux networking data path.</p>
+<p>XDP 位于 Linux 内核网络栈的最底层，它只存在于 RX 路径上，允许在网络设备驱动内部网络堆栈中数据来源最早的地方进行数据包处理，在特定模式下可以在操作系统分配内存（skb）之前就已经完成处理。</p>
+<p>XDP 暴露了一个可以加载 BPF 程序的网络钩子。在这个钩子中，程序能够对传入的数据包进行任意修改和快速决策，避免了内核内部处理带来的额外开销。这使得 XDP 在性能速度方面成为最佳钩子，例如缓解 DDoS 攻击等。</p>
+<h3 id="shell-的基础知识"><a href="#shell-的基础知识" class="headerlink" title="shell 的基础知识"></a>shell 的基础知识</h3><h4 id="grub-命令解析"><a href="#grub-命令解析" class="headerlink" title="grub 命令解析"></a>grub 命令解析</h4><figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">$&gt; sudo grub-reboot <span class="string">&quot;Advanced options for Ubuntu&gt;Ubuntu, with Linux 5.12.0-xrp+&quot;</span></span><br><span class="line">$&gt; sudo reboot</span><br></pre></td></tr></table></figure>
+
+<p>Linux 中的 GRUB - 全称是 Grand Unified BootLoader。在 Linux 的启动中，GRUB 是在 MBR 之后启动，所以将 GRUB 称为次引导加载程序。</p>
+<p>GRUB 的作用是负责家在所选择的内核，当有多个系统内核时，可以手动选择要启动的系统。</p>
+<h4 id="pushd-popd-cd"><a href="#pushd-popd-cd" class="headerlink" title="pushd, popd, cd"></a>pushd, popd, cd</h4><p>这些是 bash 内建的命令。</p>
+<h5 id="1-两个目录之间快速切换"><a href="#1-两个目录之间快速切换" class="headerlink" title="1. 两个目录之间快速切换"></a>1. 两个目录之间快速切换</h5><p>使用 <code>cd -</code> 。这个时候 <code>-</code> 代表的是 <code>$OLDPWD</code> 变量。</p>
+<h5 id="2-多个目录之间切换"><a href="#2-多个目录之间切换" class="headerlink" title="2. 多个目录之间切换"></a>2. 多个目录之间切换</h5><ul>
+<li><code>pushd</code>: 切换到作为参数的目录，并且把原目录和当前目录压入到一个虚拟的堆栈中。如果不指定参数，则会回到前一个目录，并把堆栈中最近的两个目录作交换</li>
+<li><code>popd</code> 弹出堆栈中最近的目录</li>
+<li><code>dirs</code> 列出当前堆栈中保存的目录列表</li>
+</ul>
+<p>使用 <code>pushd</code> 可以直接在最近的两个目录进行切换，使用<code>pushd+n</code> 可以切换到堆栈中的第 n 个目录。</p>
+<p><code>popd</code> 可以删除堆栈顶端的目录，<code>popd+n</code> 删除第 n 个目录。</p>
+<h5 id="3-extra-功能"><a href="#3-extra-功能" class="headerlink" title="3. extra 功能"></a>3. extra 功能</h5><ol>
+<li><code>pushd-n</code> <code>popd-n</code> 可以只影响堆栈而不切换当前目录</li>
+<li><code>dirs -c</code> 可以清空目录堆栈。说明：堆栈顶端的目录是当前目录，不能被 pop 出去。</li>
+</ol>
+<h3 id="C-的基础知识"><a href="#C-的基础知识" class="headerlink" title="C 的基础知识"></a>C 的基础知识</h3><p>read: pread vs fread</p>
+<ul>
+<li>pread: read bytes from a file at a given position</li>
+<li>fread: read bytes from a stream</li>
+</ul>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="type">ssize_t</span> <span class="title">pread</span><span class="params">(<span class="type">int</span> fd, <span class="type">void</span> *buf, <span class="type">size_t</span> count, <span class="type">off_t</span> offset)</span></span>;</span><br><span class="line"><span class="function"><span class="type">size_t</span> <span class="title">fread</span><span class="params">(<span class="type">void</span> *ptr, <span class="type">size_t</span> size, <span class="type">size_t</span> nmemb, FILE *stream)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<h2 id="BPF-KV"><a href="#BPF-KV" class="headerlink" title="BPF_KV"></a>BPF_KV</h2><h3 id="原有运行环境研究"><a href="#原有运行环境研究" class="headerlink" title="原有运行环境研究"></a>原有运行环境研究</h3><p>是在单独的文件夹，有单独的 Github 仓库，所以相对于比较独立。</p>
+<h4 id="1-Makefile"><a href="#1-Makefile" class="headerlink" title="1. Makefile"></a>1. Makefile</h4><figure class="highlight makefile"><table><tr><td class="code"><pre><span class="line">CC = gcc</span><br><span class="line">CFLAGS = -Wall -D_GNU_SOURCE -Wunused</span><br><span class="line">LDLIBS = -pthread -lbpf -lm</span><br><span class="line"></span><br><span class="line"><span class="section">all: simplekv bpf</span></span><br><span class="line"></span><br><span class="line"><span class="section">simplekv: simplekv.c simplekv.h db_types.h helpers.o range.o parse.o create.o get.o</span></span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: bpf</span></span><br><span class="line"><span class="section">bpf:</span></span><br><span class="line">        make -C xrp-bpf -f Makefile</span><br><span class="line"></span><br><span class="line"><span class="meta"><span class="keyword">.PHONY</span>: clean</span></span><br><span class="line"><span class="section">clean:</span></span><br><span class="line">        rm -rf simplekv *.o</span><br><span class="line">        make -C xrp-bpf -f Makefile clean</span><br></pre></td></tr></table></figure>
+
+<p>​.PHONY​ ​是伪目标声明，有以下几个功能：</p>
+<ol>
+<li>避免命令与文件名发生重复。</li>
+<li>生成多个应用程序。<br> 相当于 <code>make clean</code> 是执行 <code>clean</code> 下面对应的文件。</li>
+</ol>
+<h4 id="2-build-and-install-bpfkv-sh"><a href="#2-build-and-install-bpfkv-sh" class="headerlink" title="2. build_and_install_bpfkv.sh"></a>2. build_and_install_bpfkv.sh</h4><p>查看系统信息</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> [ <span class="string">&quot;<span class="subst">$(uname -r)</span>&quot;</span> !=  <span class="string">&quot;5.12.0-xrp+&quot;</span> ]; <span class="keyword">then</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;Not in XRP kernel. Please run the following commands to boot into XRP kernel:\n&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;    sudo grub-reboot \&quot;Advanced options for Ubuntu&gt;Ubuntu, with Linux 5.12.0-xrp+\&quot;\n&quot;</span></span><br><span class="line">    <span class="built_in">printf</span> <span class="string">&quot;    sudo reboot\n&quot;</span></span><br><span class="line">    <span class="built_in">exit</span> 1</span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="原有代码研究"><a href="#原有代码研究" class="headerlink" title="原有代码研究"></a>原有代码研究</h3><h4 id="1-初始化-BPF-KV"><a href="#1-初始化-BPF-KV" class="headerlink" title="1. 初始化 BPF_KV"></a>1. 初始化 BPF_KV</h4><figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">root@xrp:~/XRP/BPF-KV<span class="comment"># ./simplekv 5-layer-db 5 create</span></span><br><span class="line">Load the database of 5 layers</span><br><span class="line">954305 blocks <span class="keyword">in</span> total, max key is 28629151</span><br><span class="line">layer 0 extent 28629151</span><br><span class="line">layer 1 extent 923521</span><br><span class="line">layer 2 extent 29791</span><br><span class="line">layer 3 extent 961</span><br><span class="line">layer 4 extent 31</span><br><span class="line">Writing value heap</span><br><span class="line">Done!</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-执行-get-指令"><a href="#2-执行-get-指令" class="headerlink" title="2. 执行 get 指令"></a>2. 执行 get 指令</h4><figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">./simplekv 5-layer-db 5 get -k 1000</span><br><span class="line">./simplekv 5-layer-db 5 get -r 1000 --use-xrp</span><br><span class="line">./simplekv 5-layer-db 5 get -r 1000 --use-xrp --cache 2</span><br></pre></td></tr></table></figure>
+
+<p>C 中从 arg 中提取数字的操作</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">long</span> <span class="type">int</span> <span class="title function_">strtol</span><span class="params">(<span class="type">const</span> <span class="type">char</span>* str, <span class="type">char</span>**endptr,<span class="type">int</span> base)</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">char</span> *endptr = <span class="literal">NULL</span>;</span><br><span class="line">st-&gt;key = strtol(arg, &amp;endptr, <span class="number">10</span>);</span><br></pre></td></tr></table></figure>
+
+<p>并且使用 <code>Argp</code> 来解析程序。</p>
+<p>测试的时候使用找到对应的 <code>run_single_exp.sh</code> 来实际执行。对应的结果在 <code>result</code> 文件夹下面。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">./run_single_exp.sh 5 xrp</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-evaluation-对应的输出"><a href="#3-evaluation-对应的输出" class="headerlink" title="3. evaluation 对应的输出"></a>3. evaluation 对应的输出</h4><ol>
+<li>输出对应的参数</li>
+<li>会根据选择的 <code>mod</code> 在 <code>./simplekv</code> 里面进行执行</li>
+</ol>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">sudo ./simplekv <span class="variable">$DB_PATH</span> <span class="variable">$LAYER</span> get --requests=<span class="variable">$NUM_OPS</span> --threads <span class="variable">$NUM_THREADS</span> --use-xrp | <span class="built_in">tee</span> <span class="variable">$EVAL_PATH</span>/result/<span class="variable">$LAYER</span>-layer-xrp.txt</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>输出结果所在的目录</li>
+</ol>
+<p>总结：核心还是需要关注 .&#x2F;simplekv</p>
+<h4 id="目前已有的方法：get"><a href="#目前已有的方法：get" class="headerlink" title="目前已有的方法：get"></a>目前已有的方法：get</h4><h5 id="get"><a href="#get" class="headerlink" title="get"></a>get</h5><ol>
+<li>常规查询使用 lookup_key_userspace</li>
+<li>lookup_bpf</li>
+</ol>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="function"><span class="type">long</span> <span class="title">lookup_bpf</span><span class="params">(<span class="type">int</span> db_fd, <span class="type">int</span> bpf_fd, <span class="keyword">struct</span> Query *query, <span class="type">ptr__t</span> index_offset)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/* Set up buffers and query */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 对其 内存的地址，0x1000 是 4096 -&gt; 4KB</span></span><br><span class="line">    <span class="comment">// 是作者自己定义的函数</span></span><br><span class="line">    <span class="type">char</span> *buf = (<span class="type">char</span> *)<span class="built_in">aligned_alloca</span>(<span class="number">0x1000</span>, <span class="number">0x1000</span>);</span><br><span class="line">    <span class="type">char</span> *scratch = (<span class="type">char</span> *)<span class="built_in">aligned_alloca</span>(<span class="number">0x1000</span>, SCRATCH_SIZE);</span><br><span class="line">    <span class="built_in">memset</span>(buf, <span class="number">0</span>, <span class="number">0x1000</span>);</span><br><span class="line">    <span class="built_in">memset</span>(scratch, <span class="number">0</span>, <span class="number">0x1000</span>);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">ScatterGatherQuery</span> *sgq = (<span class="keyword">struct</span> ScatterGatherQuery *)scratch;</span><br><span class="line">    sgq-&gt;keys[<span class="number">0</span>] = query-&gt;key;</span><br><span class="line">    sgq-&gt;n_keys = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* Syscall to invoke BPF function that we loaded out-of-band previously */</span></span><br><span class="line">    <span class="type">long</span> ret = <span class="built_in">syscall</span>(SYS_READ_XRP, db_fd, buf, BLK_SIZE, index_offset, bpf_fd, scratch);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">struct</span> <span class="title class_">MaybeValue</span> *maybe_v = &amp;sgq-&gt;values[<span class="number">0</span>];</span><br><span class="line">    query-&gt;found = (<span class="type">long</span>)maybe_v-&gt;found;</span><br><span class="line">    <span class="keyword">if</span> (query-&gt;found)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">memcpy</span>(query-&gt;value, maybe_v-&gt;value, <span class="built_in">sizeof</span>(<span class="type">val__t</span>));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="目前已有的方法：range"><a href="#目前已有的方法：range" class="headerlink" title="目前已有的方法：range"></a>目前已有的方法：range</h3><h3 id="syscall"><a href="#syscall" class="headerlink" title="syscall"></a>syscall</h3><p>核心 xrp 的使用就是使用 syscall, 直接进行调用。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/* Syscall to invoke BPF function that we loaded out-of-band previously */</span></span><br><span class="line"><span class="type">long</span> ret = syscall(SYS_READ_XRP, db_fd, buf, BLK_SIZE, index_offset, bpf_fd, scratch);</span><br></pre></td></tr></table></figure>
+
+<h2 id="对应的文件在-xrp-bpf-的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。"><a href="#对应的文件在-xrp-bpf-的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。" class="headerlink" title="对应的文件在 xrp-bpf 的文件夹中。需要进行编译里面的内容是不一样的，需要在内核中执行。"></a>对应的文件在 <code>xrp-bpf</code> 的文件夹中。需要进行编译<br>里面的内容是不一样的，需要在内核中执行。</h2><p>研究明白 <code>BPF-KV</code> 的逻辑了，开始直接在 <code>Specialized-BPF-KV</code> 里面的 <code>io-uring</code> 上面进行修改。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"># ./db --load $LAYER</span><br><span class="line">./db --load <span class="number">6</span></span><br><span class="line"></span><br><span class="line"># ./db --run $LAYER $NUM_OPS $NUM_THREADS $read_ratio $rmw_ratio $cache_layer</span><br><span class="line"># ./db --run $LAYER $NUM_OPS $NUM_THREADS <span class="number">100</span> <span class="number">0</span> <span class="number">0</span></span><br><span class="line">./db --run <span class="number">6</span> <span class="number">1000</span> <span class="number">1</span> <span class="number">100</span> <span class="number">0</span> <span class="number">0</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="在原有数据结构上进行修改"><a href="#在原有数据结构上进行修改" class="headerlink" title="在原有数据结构上进行修改"></a>在原有数据结构上进行修改</h3><h3 id="添加新的数据结构-SkipList"><a href="#添加新的数据结构-SkipList" class="headerlink" title="添加新的数据结构 - SkipList"></a>添加新的数据结构 - SkipList</h3><p>这个是我一直想要添加的数据结构。MySQL 使用 B + 树做索引，Redis 使用跳表。</p>
+<h2 id="Linux-Kernel"><a href="#Linux-Kernel" class="headerlink" title="Linux Kernel"></a>Linux Kernel</h2><h3 id="1-xrp-resubmit-level-count"><a href="#1-xrp-resubmit-level-count" class="headerlink" title="1. xrp_resubmit_level_count"></a>1. xrp_resubmit_level_count</h3><h3 id="2-parallel-nvme-submit-cmds"><a href="#2-parallel-nvme-submit-cmds" class="headerlink" title="2. parallel nvme_submit_cmds"></a>2. parallel nvme_submit_cmds</h3><p>并行运行 nvme_submit_cmds, 以实现并行执行的目的。需要将 nvme cmd 发送到不同的 Queue 上去执行。</p>
+<p><strong>查询 NVMe 设备队列的信息</strong></p>
+<ol>
+<li>文件查询 - &#x2F;sys&#x2F;class&#x2F;nvme&#x2F;nvmeX&#x2F;queues</li>
+<li>使用代码来查询</li>
+</ol>
+<h3 id="编译内核"><a href="#编译内核" class="headerlink" title="编译内核"></a>编译内核</h3><figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">cd build</span><br><span class="line">cd linux</span><br><span class="line">git remote add xxx</span><br><span class="line">git pull</span><br><span class="line">git clean -xdf</span><br><span class="line"><span class="meta prompt_"></span></span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Load Config</span></span><br><span class="line">../../build.sh</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Build with 12 cores</span></span><br><span class="line">make -j12 deb-pkg</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">Pack up</span></span><br><span class="line">cd ..</span><br><span class="line">dpkg -i ./*.deb</span><br><span class="line"><span class="meta prompt_"># </span><span class="language-bash">reboot</span></span><br><span class="line">reboot</span><br></pre></td></tr></table></figure>
+
+<p>apt install libbpf-dev</p>
+]]></content>
+      <tags>
+        <tag>xrp</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Constexpr in C++</title>
+    <url>/cpp-constexpr/</url>
+    <content><![CDATA[<h2 id="constexpr"><a href="#constexpr" class="headerlink" title="constexpr"></a>constexpr</h2><p>constexpr 表达式是指值不会改变并且在编译过程就能得到计算结果的表达式。声明为 constexpr 的变量一定是一个 const 变量，而且必须用常量表达式初始化。</p>
+<p>目的是为了允许程序利用编译时的计算能力，来提高代码执行效率。因为有些事情在编译的时候做，可以只做一次，而不是每次在程序运行时执行。</p>
+<p>constexpr 关键字应用的到函数：</p>
+<ol>
+<li>如果传入的参数可以在编译时期计算出来，这个函数就会产生编译时期的值。</li>
+<li>如果不能计算出来，constexpr 修饰的函数就和普通函数一样。</li>
+</ol>
+<p>所以可以一个版本实现对应的功能。</p>
+<h3 id="constexpr-修饰函数的限制"><a href="#constexpr-修饰函数的限制" class="headerlink" title="constexpr 修饰函数的限制"></a>constexpr 修饰函数的限制</h3><p>constexpr 有一些必须遵循的严格要求：</p>
+<ol>
+<li>函数中只能有一个 return 语句（但允许包含 typedefs、using declaration &amp;&amp; directives、静态断言等）</li>
+<li>只能调用其它 constexpr 函数</li>
+<li>只能使用全局 constexpr 变量</li>
+</ol>
+<p>使用三元运算符可以实现计算递归。</p>
+<p>如果将一个函数或者变量标记为 constexpr，那么就顺便标记为 const。constexpr 编译器会对其进行进一步的优化。</p>
+<h2 id="和-const-的对比"><a href="#和-const-的对比" class="headerlink" title="和 const 的对比"></a>和 const 的对比</h2><p>C++ 中的 const 是通过编译器来保证对象的常量性，任何可能违背 const 对象常量性的操作被视为 error。</p>
+<p>const 变量需要在变量初始化的时候就提供初值。这个初始值可以是编译时候确定的值，也可以是运行时确定的值。如果是编译时就确定的值，可以作为声明数组时的长度。</p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">int</span> COMPILE_CONST = <span class="number">10</span>;</span><br><span class="line"><span class="type">const</span> <span class="type">int</span> RUNTIME_CONST = cin.<span class="built_in">get</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> a[COMPILE_CONST]; <span class="comment">// okey in C++, but error in C</span></span><br><span class="line"><span class="type">int</span> b[RUNTIME_CONST]; <span class="comment">// error in C++</span></span><br></pre></td></tr></table></figure>
+
+<p>因为 C++ 自动把数组长度中出现的编译时常量直接替换为字面值，相当于自动的宏替换；其他如果蛋蛋使用赋值的地方没有进行替换。</p>
+<p>指针自身为 const 表示不可对该指针进行赋值，而指向物为 const 则表示不可对其指向进行赋值。</p>
+<h3 id="类中的-const"><a href="#类中的-const" class="headerlink" title="类中的 const"></a>类中的 const</h3><p>C++ 类中的 this 指针就是一个自身为 const 的指针（指向物不变），类的 const 方法中的 this 指针是自身和指向物都为 const 的指针。</p>
+<h4 id="const-成员变量"><a href="#const-成员变量" class="headerlink" title="const 成员变量"></a>const 成员变量</h4><p><strong>非 static 变量</strong></p>
+<p>非 static 变量必须在构造函数的初始化列表中进行初始化，因为需要在进入构造函数函数体之前就构造完成。</p>
+<p><strong>static 常量</strong></p>
+<p>static 常量在泪中直接声明，在类外进行唯一的定义和初始化。</p>
+<h4 id="const-修饰函数"><a href="#const-修饰函数" class="headerlink" title="const 修饰函数"></a>const 修饰函数</h4><p>语义是保证该函数对应对象本身的 const 性。</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Cpp-Programming</title>
+    <url>/cpp-programming/</url>
+    <content><![CDATA[<h2 id="C-语法的问题"><a href="#C-语法的问题" class="headerlink" title="C++ 语法的问题"></a>C++ 语法的问题</h2><ol>
+<li>std::move</li>
+<li>函数形参是否使用引用 &amp;</li>
+<li></li>
+</ol>
+<h2 id="Debugger-的使用"><a href="#Debugger-的使用" class="headerlink" title="Debugger 的使用"></a>Debugger 的使用</h2><ol>
+<li>最重要的起点：一定要记得使用 Debugger</li>
+<li>Debugger 可以按照自己喜欢的范式很好的执行</li>
+</ol>
+<h2 id="Clion-的使用"><a href="#Clion-的使用" class="headerlink" title="Clion 的使用"></a>Clion 的使用</h2>]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>C++ 分布式</title>
+    <url>/cpp-coordinator-worker/</url>
+    <content><![CDATA[<p>使用 C++ 实现 <code>coordinator</code> 和 <code>worker</code> 实现任务分配及处理。</p>
+<p>核心思想是 IO Multiplexing 多路复用。</p>
+<h2 id="线程池"><a href="#线程池" class="headerlink" title="线程池"></a>线程池</h2><p><a href="https://subingwen.cn/linux/epoll/">讲的很细致</a></p>
+<p>主线程负责所有</p>
+<h2 id="IO-Multiplexing-多路复用"><a href="#IO-Multiplexing-多路复用" class="headerlink" title="IO Multiplexing 多路复用"></a>IO Multiplexing 多路复用</h2><p>监视多个描述符，一旦某个描述符就绪（一般是读就绪或者写就绪），能够通知程序进行相应的读写操作。</p>
+<p>常见的三种 select, poll, epoll.</p>
+<p>select 的核心功能是调用 tcp 文件系统的 poll 函数，不停的查询，如果没有想要的数据，主动执行一次调度（防止一直占用 cpu），直到有一个连接有想要的消息为止。</p>
+<p>缺点：</p>
+<p>1、每次调用 select，都需要把 fd 集合从用户态拷贝到内核态，开销大；<br>2、同时每次调用 select 都需要在内核遍历传递进来的所有 fd，开销大；<br>3、select 支持的文件描述符数量太小了，默认是 1024。</p>
+<p>优点：</p>
+<p>1、select 的可移植性更好，在某些 Unix 系统上不支持 poll ()。<br>2、select 对于超时值提供了更好的精度：微秒，而 poll 是毫秒。</p>
+<p>poll 本质上和 select 没有区别，它将用户传入的数组拷贝到内核空间，然后查询每个 fd 对应的设备状态，如果设备就绪则在设备等待队列中加入一项并继续遍历，如果遍历完所有 fd 后没有发现就绪设备，则挂起当前进程，直到设备就绪或者主动超时，被唤醒后它又要再次遍历 fd。</p>
+<p>poll 和 select 同样存在一个缺点：包含大量文件描述符的数组被整体复制于用户态和内核的地址空间之间，而不论这些文件描述符是否就绪，其开销也随着文件描述符数量增加而线性增大。</p>
+<p>核心缺点：还是使用轮询来获取就绪的描述符</p>
+<p>核心优点：没有最大连接数的限制，因为是基于链表进行存储。</p>
+<h3 id="epoll"><a href="#epoll" class="headerlink" title="epoll"></a>epoll</h3><p>epoll 只对活跃的 socket 进行操作。</p>
+<p>虽然也需要调用 <code>epoll_wait</code> 不断轮询就绪链表，但是只需要判断就绪链表是否为空即可。使用的回调机制带来了性能提升。</p>
+<p>epoll 是事件驱动。</p>
+]]></content>
+  </entry>
+  <entry>
+    <title>C++中的动态多态和静态多态</title>
+    <url>/dynamic-and-static-polymorphism-in-cpp/</url>
+    <content><![CDATA[<h2 id="动态多态"><a href="#动态多态" class="headerlink" title="动态多态"></a>动态多态</h2><p>动态多态是我们熟悉的多态形式。</p>
+<h3 id="核心思想是"><a href="#核心思想是" class="headerlink" title="核心思想是"></a>核心思想是</h3><ol>
+<li>多个类共享一个共同功能集。</li>
+<li>在基类中，将其声明为公共的虚函数接口。各个子类重写虚函数。</li>
+<li>使用指向基类的指针来操作对象，对虚函数的调用会自动绑定到实际的子类实现中。</li>
+</ol>
+<h3 id="虚函数-gt-运行时完成-gt-性能损失"><a href="#虚函数-gt-运行时完成-gt-性能损失" class="headerlink" title="虚函数 -&gt; 运行时完成 -&gt; 性能损失"></a>虚函数 -&gt; 运行时完成 -&gt; 性能损失</h3><ul>
+<li><p>函数有 record-kayouts &amp; vtable-layout</p>
+</li>
+<li><p>vtable 里面包括：</p>
+<ul>
+<li>offset_to_top()</li>
+<li>RTTI (Run-Time Type Indentification) 运行时能够使用基类的指针或引用来检查这些指针或引用所指的对象的实际派生类型</li>
+<li>虚函数真正指向的地址</li>
+</ul>
+</li>
+<li><p>额外开销</p>
+<ul>
+<li>RTTI 判定实际对象<ul>
+<li>时间上：整形比较和取址操作</li>
+<li>空间上：每个类多出一个 type_info 对象</li>
+</ul>
+</li>
+<li>虚函数：指针间接寻找实际执行地址<ul>
+<li>时间上：整形加法和指针间接引用</li>
+<li>空间上：每个类一个虚表，每个对象一个虚表指针</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="静态多态"><a href="#静态多态" class="headerlink" title="静态多态"></a>静态多态</h2><p>本质是模版的具现化。</p>
+<p>程序在编译期就确定了对象类型和调用的函数地址。</p>
+<h3 id="核心思想"><a href="#核心思想" class="headerlink" title="核心思想"></a>核心思想</h3><ol>
+<li>不强求共有基类，只需要各个类实现相同的接口声明</li>
+<li>使用时直接对模版指定类型实参即可</li>
+</ol>
+<h3 id="CRTP"><a href="#CRTP" class="headerlink" title="CRTP"></a>CRTP</h3><p>常见实现方式：Curiously recurring template pattern，主要特点是把派生类作为基类的模板参数。</p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><p><a href="https://iliubang.cn/posts/cpp/2022-03-23-c++%E4%B8%AD%E7%9A%84%E5%8A%A8%E6%80%81%E5%A4%9A%E6%80%81%E5%92%8C%E9%9D%99%E6%80%81%E5%A4%9A%E6%80%81/">C++中的动态多态和静态多态</a></p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>polymorphism</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>C++ 中的左值和右值</title>
+    <url>/lvalue-and-rvalue-in-cpp/</url>
+    <content><![CDATA[<p>在 C++ 中，左值和右值是指对象的两种不同类型。</p>
+<p>左值（或赋值左值）是一个可以出现在赋值号左侧的表达式，即可以用来指定存储位置的表达式。例如，在下面的代码中，变量 a 和数组元素 arr [i] 都是左值：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> arr[<span class="number">10</span>];</span><br><span class="line">arr[i] = a;</span><br></pre></td></tr></table></figure>
+
+<p>右值（或赋值右值）是一个不能出现在赋值号左侧的表达式，它通常表示临时值或者存储在右值引用（rvalue reference）类型中。例如，在下面的代码中，常量 5 和表达式 a + b 都是右值：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> a = <span class="number">5</span>;</span><br><span class="line"><span class="type">int</span> b = <span class="number">6</span>;</span><br><span class="line"><span class="type">int</span> c = <span class="number">5</span> + a;</span><br></pre></td></tr></table></figure>
+
+<p>左值和右值的主要区别在于它们的存储方式。</p>
+<p>左值表示一个存储在内存中的对象，而右值则表示一个临时的、不存储在内存中的对象。这两种类型的对象在 C++ 中有不同的语义和用途，理解它们的区别对于正确使用 C++ 中的赋值运算符和其他语言特性非常重要。</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Cpp-Stl</title>
+    <url>/cpp-stl/</url>
+    <content><![CDATA[<h2 id="std-move-将左值引用转换为右值引用"><a href="#std-move-将左值引用转换为右值引用" class="headerlink" title="std::move () - 将左值引用转换为右值引用"></a>std::move () - 将左值引用转换为右值引用</h2><p>std::move 是一个 C++ 标准库函数，核心思想是将左值引用转换为右值引用，它的作用是将一个对象的所有权从当前所有者转移到另一个对象。例如：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v2 = std::<span class="built_in">move</span>(v);</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v2: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v2)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码会输出：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line">v: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br><span class="line">v:</span><br><span class="line">v2: <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看出，std::move 的作用是将 v 的所有权转移到 v2，因此在转移之后 v 的内容会被清空。</p>
+<p>请注意，std::move 并不会执行任何拷贝操作，它只是转移所有权。因此，std::move 通常用于将一个对象用作函数参数，以便将它的所有权转移给函数。例如：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;utility&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">foo</span><span class="params">(std::vector&lt;<span class="type">int</span>&gt;&amp;&amp; v)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;foo: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; v = &#123;<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>&#125;;</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i &lt;&lt; <span class="string">&#x27; &#x27;</span>;</span><br><span class="line">    std::cout &lt;&lt; <span class="string">&#x27;\n&#x27;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="built_in">foo</span>(std::<span class="built_in">move</span>(v));</span><br><span class="line"></span><br><span class="line">    std::cout &lt;&lt; <span class="string">&quot;v: &quot;</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">const</span> <span class="keyword">auto</span>&amp; i : v)</span><br><span class="line">        std::cout &lt;&lt; i</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="std-isspace"><a href="#std-isspace" class="headerlink" title="std::isspace()"></a>std::isspace()</h2><p>可以检测 whitespace</p>
+]]></content>
+      <categories>
+        <category>C++</category>
+      </categories>
+      <tags>
+        <tag>stl</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>排序算法</title>
+    <url>/sort-algorithm/</url>
+    <content><![CDATA[<h2 id="九种排序算法分析与实现"><a href="#九种排序算法分析与实现" class="headerlink" title="九种排序算法分析与实现"></a>九种排序算法分析与实现</h2><p>简介：总的来说，排序算法共有八大类，即冒泡排序、选择排序、快速排序、插入排序、希尔排序、归并排序、基数排序以及堆排序等，本文另外也介绍了桶排序。编程语言使用了 C&#x2F;C++（其实主要用的 C），3 个经常出现的函数形参，arr - 待排序数组名（首元素地址）、bgn - 待排序数组起始排序元素位置（有时我们仅需要对数组中某一段元素进行排序，但通常 bgn &#x3D; 0，即 arr 首元素位置）、end - 待排序数组截止排序尾元素的下一个位置（即该位置无效，不可引用）。文中均已升序为例，降序原理相同。</p>
+<p>时间复杂度：描述该算法在处理大量数据时，总的来说其时间效率的参考；  </p>
+<p>稳定性：描述算法对原始序列处理前后，该序列相等大小的元素前后位置是否发生改变</p>
+<p>两个常用的函数：1、获取数组最大元素值；2、交换两个整形元素。代码如下：</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">//获取整形数组的最大值</span></span><br><span class="line"><span class="comment">//<span class="doctag">NOTE:</span> 默认 arr 非空</span></span><br><span class="line"><span class="function"><span class="type">int</span> <span class="title">getMaxValue</span><span class="params">(<span class="type">const</span> vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> val : arr)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (val &gt; max)</span><br><span class="line">            max = val;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> max;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*交换两个整形值*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mySwap</span><span class="params">(<span class="type">int</span> *pa, <span class="type">int</span> *pb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> tmp = *pa;</span><br><span class="line">    *pa = *pb;</span><br><span class="line">    *pb = tmp;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1、冒泡排序"><a href="#1、冒泡排序" class="headerlink" title="1、冒泡排序"></a>1、冒泡排序</h3><p>依次比较相邻两元素，若前一元素大于后一元素则交换之，直至最后一个元素即为最大；然后重新从首元素开始重复同样的操作，直至倒数第二个元素即为次大元素；依次类推。如同水中的气泡，依次将最大或最小元素气泡浮出水面。</p>
+<p>时间复杂度：O (N2)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*冒泡排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bubbleSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">/*isLoop 用于指示依次遍历中是否发生元素交换，若没有，则已是有序数列，退出即可*/</span></span><br><span class="line">    <span class="type">bool</span> isLoop = <span class="literal">true</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = end; <span class="literal">true</span> == isLoop &amp;&amp; i &gt; bgn; --i)</span><br><span class="line">    &#123;</span><br><span class="line">        isLoop = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = bgn + <span class="number">1</span>; j &lt; i; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[j - <span class="number">1</span>])</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">mySwap</span>(&amp;arr[j], &amp;arr[j - <span class="number">1</span>]);</span><br><span class="line">                isLoop = <span class="literal">true</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、选择排序"><a href="#2、选择排序" class="headerlink" title="2、选择排序"></a>2、选择排序</h3><p>首先初始化最小元素索引值为首元素，依次遍历待排序数列，若遇到小于该最小索引位置处的元素则刷新最小索引为该较小元素的位置，直至遇到尾元素，结束一次遍历，并将最小索引处元素与首元素交换；然后，初始化最小索引值为第二个待排序数列元素位置，同样的操作，可得到数列第二个元素即为次小元素；以此类推。</p>
+<p>时间复杂度：O (N2)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*选择排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">selectSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="type">int</span> minIndex = i;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> j = i + <span class="number">1</span>; j &lt; end; ++j)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt; arr[minIndex])</span><br><span class="line">                minIndex = j;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (minIndex != i)</span><br><span class="line">            <span class="built_in">mySwap</span>(&amp;arr[i], &amp;arr[minIndex]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3、快速排序"><a href="#3、快速排序" class="headerlink" title="3、快速排序"></a>3、快速排序</h3><p>类似于选择排序的定位思想）选一基准元素，依次将剩余元素中小于该基准元素的值放置其左侧，大于等于该基准元素的值放置其右侧；然后，取基准元素的前半部分和后半部分分别进行同样的处理；以此类推，直至各子序列剩余一个元素时，即排序完成（类比二叉树的思想，from up to down）</p>
+<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*快排*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">quickSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span>  <span class="comment">//arr must be the reference of real param</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> lindex = bgn;</span><br><span class="line"><span class="type">int</span> rindex = end - <span class="number">1</span>;</span><br><span class="line"><span class="type">int</span> std = arr[lindex];</span><br><span class="line"><span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[rindex] &lt; std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[lindex++] = arr[rindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        --rindex;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">while</span> (lindex &lt; rindex)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (arr[lindex] &gt;= std)</span><br><span class="line">        &#123;</span><br><span class="line">            arr[rindex--] = arr[lindex];</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        ++lindex;</span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">arr[lindex] = std;</span><br><span class="line"><span class="built_in">quickSort</span>(arr, bgn, lindex);</span><br><span class="line"><span class="built_in">quickSort</span>(arr, rindex + <span class="number">1</span>, end);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4、插入排序"><a href="#4、插入排序" class="headerlink" title="4、插入排序"></a>4、插入排序</h3><p>数列前面部分看为有序，依次将后面的无序数列元素插入到前面的有序数列中，初始状态有序数列仅有一个元素，即首元素。在将无序数列元素插入有序数列的过程中，采用了逆序遍历有序数列，相较于顺序遍历会稍显繁琐，但当数列本身已近排序状态效率会更高。</p>
+<p>时间复杂度：O (N2)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*插入排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">insertSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> i = bgn + <span class="number">1</span>; i &lt; end; ++i)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/*</span></span><br><span class="line"><span class="comment">        * 分为 1,2 两部分处理，可以囊括 j = beg - 1 时的情况</span></span><br><span class="line"><span class="comment">        * 即需要将 arr[i] 插入到首元素前的位置，若使用一个 for</span></span><br><span class="line"><span class="comment">        * 包括这两部分，则会在发生这种情况时退出</span></span><br><span class="line"><span class="comment">        */</span></span><br><span class="line">        <span class="comment">/*1*/</span></span><br><span class="line">        <span class="type">int</span> j = i - <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">for</span> ( ; j &gt;= bgn; --j)</span><br><span class="line">            <span class="keyword">if</span> (arr[j] &lt;= arr[i])</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">        <span class="comment">/*2*/</span></span><br><span class="line">        <span class="keyword">if</span> (j != i - <span class="number">1</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="type">int</span> temp = arr[i];</span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> k = i; k &gt; j + <span class="number">1</span>; --k)</span><br><span class="line">            &#123;</span><br><span class="line">                arr[k] = arr[k - <span class="number">1</span>];</span><br><span class="line">            &#125;</span><br><span class="line">            arr[j + <span class="number">1</span>] = temp;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5、希尔排序"><a href="#5、希尔排序" class="headerlink" title="5、希尔排序"></a>5、希尔排序</h3><p>插入排序的改进版。为了减少数据的移动次数，在初始序列较大时取较大的步长，通常取序列长度的一半，此时只有两个元素比较，交换一次；之后步长依次减半直至步长为 1，即为插入排序，由于此时序列已接近有序，故插入元素时数据移动的次数会相对较少，效率得到了提高。</p>
+<p>时间复杂度：通常认为是 O (N3&#x2F;2) ，未验证  稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*希尔排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">shellSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> step = (end - bgn) / <span class="number">2</span>; step &gt; <span class="number">0</span>; step /= <span class="number">2</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; step; ++i)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">/*</span></span><br><span class="line"><span class="comment">            * 以下，insertSort 的变异</span></span><br><span class="line"><span class="comment">            */</span></span><br><span class="line">            <span class="keyword">for</span> (<span class="type">int</span> j = i + step; j &lt; end; j += step)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="type">int</span> k = j - step;</span><br><span class="line">                <span class="keyword">for</span> ( ; k &gt;= i; k -= step)</span><br><span class="line">                    <span class="keyword">if</span> (arr[k] &lt;= arr[j])</span><br><span class="line">                        <span class="keyword">break</span>;</span><br><span class="line">                <span class="keyword">if</span> (k != j - step)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="type">int</span> tmp = arr[j];</span><br><span class="line">                    <span class="keyword">for</span> (<span class="type">int</span> m = j; m &gt; k + step; m -= step)</span><br><span class="line">                        arr[m] = arr[m - step];</span><br><span class="line">                    arr[k + step] = tmp;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="6、桶排序"><a href="#6、桶排序" class="headerlink" title="6、桶排序"></a>6、桶排序</h3><p>实现线性排序，但当元素间值得大小有较大差距时会带来内存空间的较大浪费。首先，找出待排序列中得最大元素 max，申请内存大小为 max + 1 的桶（数组）并初始化为 0；然后，遍历排序数列，并依次将每个元素作为下标的桶元素值自增 1；最后，遍历桶元素，并依次将值非 0 的元素下标值载入排序数列（桶元素 &gt; 1 表明有值大小相等的元素，此时依次将他们载入排序数列），遍历完成，排序数列便为有序数列。</p>
+<p>时间复杂度：O (x*N)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*桶排序*/</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">bucketSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[max + <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="built_in">memset</span>(pBuf, <span class="number">0</span>, (max + <span class="number">1</span>)*<span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> i : arr)</span><br><span class="line">    ++pBuf[i];</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>, j = <span class="number">0</span>; i &lt;= max; ++i)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">while</span> (pBuf[i]--)</span><br><span class="line">        arr[j++] = i;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="7、基数排序"><a href="#7、基数排序" class="headerlink" title="7、基数排序"></a>7、基数排序</h3><p>桶排序的改进版，桶的大小固定为 10，减少了内存空间的开销。首先，找出待排序列中得最大元素 max，并依次按 max 的低位到高位对所有元素排序；桶元素 10 个元素的大小即为待排序数列元素对应数值为相等元素的个数，即每次遍历待排序数列，桶将其按对应数值位大小分为了 10 个层级，桶内元素值得和为待排序数列元素个数。</p>
+<p>时间复杂度：O (x*N)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*基数排序*/</span></span><br><span class="line"><span class="comment">//1. 计数排序，按整形数值单位进行排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">countSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> exp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> bucket[<span class="number">10</span>] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line">    <span class="type">int</span> arrSize = arr.<span class="built_in">size</span>();</span><br><span class="line">    <span class="type">int</span> *pTemp = <span class="keyword">new</span> <span class="type">int</span>[arrSize];</span><br><span class="line">    <span class="built_in">memset</span>(pTemp, <span class="number">0</span>, arrSize * <span class="built_in">sizeof</span>(<span class="type">int</span>));</span><br><span class="line"></span><br><span class="line"><span class="comment">//统计单位 exp 各数值计数值</span></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">    ++bucket[(val / exp) % <span class="number">10</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//计数分层</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">1</span>; i &lt; <span class="number">10</span>; ++i)</span><br><span class="line">    bucket[i] += bucket[i - <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">//按 exp 位大小用数组 arr 元素填充 pTemp</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = arrSize - <span class="number">1</span>; i &gt;= <span class="number">0</span>; --i)</span><br><span class="line">    pTemp[ --bucket[(arr[i] / exp) % <span class="number">10</span>] ] = arr[i];</span><br><span class="line"></span><br><span class="line"><span class="comment">/*bugs*/</span></span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    <span class="comment">//bug1: bucket 各层次的计数值没遍历一次相应自减 1</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[bucket[(val / exp) % <span class="number">10</span>] - <span class="number">1</span>] = val;</span><br><span class="line">    <span class="comment">//bug2: arr 数组元素每次排序时，下标应从大到小遍历，否则无法实现排序</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> <span class="type">const</span> val : arr)</span><br><span class="line">        pTemp[ --bucket[(val / exp) % <span class="number">10</span>] ] = val;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; arrSize; ++i)</span><br><span class="line">    arr[i] = pTemp[i];</span><br><span class="line"><span class="keyword">delete</span> []pTemp;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//2. 合并各单位计数排序结果</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">radixSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> max = <span class="built_in">getMaxValue</span>(arr);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">int</span> exp = <span class="number">1</span>; max / exp != <span class="number">0</span>; exp *= <span class="number">10</span>)</span><br><span class="line">        <span class="built_in">countSort</span>(arr, exp);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="8、归并排序"><a href="#8、归并排序" class="headerlink" title="8、归并排序"></a>8、归并排序</h3><p>采用了分治和递归的思想，递归 &amp; 分治 - 排序整个数列如同排序两个有序数列，依次执行这个过程直至排序末端的两个元素，再依次向上层输送排序好的两个子列进行排序直至整个数列有序（类比二叉树的思想，from down to up）。</p>
+<p>时间复杂度：O (NlogN)   稳定性：稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*归并排序*/</span></span><br><span class="line"><span class="comment">//排序两个有序数列</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSortInOrder</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> mid, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> *pBuf = <span class="keyword">new</span> <span class="type">int</span>[end - bgn];</span><br><span class="line">    <span class="type">int</span> *pTemp = pBuf;</span><br><span class="line">    <span class="type">int</span> lindex = bgn;</span><br><span class="line">    <span class="type">int</span> rindex = mid;</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> ((lindex &lt; mid) &amp;&amp; (rindex &lt; end))</span><br><span class="line">    *(pTemp++) = (arr[lindex] &lt; arr[rindex]) ? arr[lindex++] : arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (lindex &lt; mid)</span><br><span class="line">    *pTemp++ = arr[lindex++];</span><br><span class="line"><span class="keyword">while</span> (rindex &lt; end)</span><br><span class="line">    *pTemp++ = arr[rindex++];</span><br><span class="line"></span><br><span class="line"><span class="comment">//pTemp -&gt; arr</span></span><br><span class="line">pTemp = pBuf;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> i = bgn; i &lt; end; i++)</span><br><span class="line">    arr[i] = *pTemp++;</span><br><span class="line"></span><br><span class="line"><span class="keyword">delete</span> []pBuf;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//UpToDown To DownToUp</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">mergeSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//数组 arr 空 or 仅有一个元素则退出</span></span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> mid = (bgn + end) / <span class="number">2</span>;</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, bgn, mid);</span><br><span class="line"><span class="built_in">mergeSort</span>(arr, mid, end);</span><br><span class="line"><span class="built_in">mergeSortInOrder</span>(arr, bgn, mid, end);</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="9、堆排序"><a href="#9、堆排序" class="headerlink" title="9、堆排序"></a>9、堆排序</h3><p>堆排序的思想借助于二叉堆中的最大堆得以实现。首先，将待排序数列抽象为二叉树，并构造出最大堆；然后，依次将最大元素（即根节点元素）与待排序数列的最后一个元素交换（即二叉树最深层最右边的叶子结点元素）；每次遍历，刷新最后一个元素的位置（自减 1），直至其与首元素相交，即完成排序。</p>
+<p>时间复杂度：O (NlogN)   稳定性：不稳定</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="comment">/*堆排序*/</span></span><br><span class="line"><span class="comment">//根节点元素自顶向下移动到合适的位置以构成最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">downToMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">int</span> child;</span><br><span class="line">    <span class="type">int</span> parent = bgn;</span><br><span class="line"></span><br><span class="line"><span class="comment">/*假根节点向下移动至合适的位置 --整个堆排序的核心代码块*/</span></span><br><span class="line"><span class="keyword">while</span> ((child = parent * <span class="number">2</span> + <span class="number">1</span>) &lt; end)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> ((child &lt; end - <span class="number">1</span>) &amp;&amp; (arr[child] &lt; arr[child + <span class="number">1</span>]))</span><br><span class="line">        ++child;    <span class="comment">//右孩子节点</span></span><br><span class="line">    <span class="keyword">if</span> (arr[child] &gt; arr[parent])</span><br><span class="line">        <span class="built_in">mySwap</span>(&amp;arr[child], &amp;arr[parent]);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    parent = child;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//将数组构造为最大堆</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">buildMaxHeap</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (bgn &gt;= end - <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> parent = end / <span class="number">2</span> - <span class="number">1</span>;</span><br><span class="line"><span class="keyword">while</span> (parent &gt;= <span class="number">0</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, parent, end);</span><br><span class="line">    --parent;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">//堆排序</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">heapSort</span><span class="params">(vector&lt;<span class="type">int</span>&gt; &amp;arr, <span class="type">int</span> bgn, <span class="type">int</span> end)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">//构造最大堆</span></span><br><span class="line">    <span class="built_in">buildMaxHeap</span>(arr, bgn, end);</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span> (end &gt; <span class="number">1</span>)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">mySwap</span>(&amp;arr[<span class="number">0</span>], &amp;arr[--end]);</span><br><span class="line">    <span class="built_in">downToMaxHeap</span>(arr, <span class="number">0</span>, end);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Algorithms</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Cloud-Benchmark</title>
+    <url>/cloud-benchmark/</url>
+    <content><![CDATA[<h2 id="Benchmarking"><a href="#Benchmarking" class="headerlink" title="Benchmarking"></a>Benchmarking</h2><p>TPC-DS 是 TPC-H 的进化版本。YCSB 主要用于评估 NoSQL 数据库的性能。<br>关注的重点是读写吞吐量、响应时间和数据加载速度。</p>
+<h3 id="TPC-H"><a href="#TPC-H" class="headerlink" title="TPC-H"></a>TPC-H</h3><p>TPC-H（Transaction Processing Performance Council Benchmark H）是一个基准测试，用于评估关系型数据库系统（RDBMS）的决策支持（decision support）性能。TPC-H 是一个典型的决策支持工作负载，其中包含一组多维查询，这些查询涉及大量数据，通常被称为数据仓库（data warehouse）或商业智能（business intelligence）应用程序。</p>
+<p>TPC-H 的数据集由 8 表组成，每个表都包含大量数据，并且可以根据需要扩展到更大的数据量。这 8 个表分别是：customer、lineitem、nation、orders、part、partsupp、region 和 supplier。</p>
+<p>TPC-H 包括 22 个查询，从查询 1 到查询 22，每个查询都有不同的复杂度和数据访问模式。这些查询包括联合、聚合、子查询和多级连接等操作，涉及到不同的数据表和数据集。</p>
+<p>TPC-H 主要衡量查询吞吐量和响应时间。吞吐量指数据库系统能够处理的查询数量，响应时间指单个查询的执行时间。TPC-H 的指标包括以下几项：</p>
+<p>QphH（Queries per Hour H）：TPC-H 测试中查询的数量，表示每小时可以处理的查询数量。</p>
+<p>QppH（Queries per Parallel Hour）：TPC-H 测试中并行查询的数量，表示每小时可以处理的并行查询数量。</p>
+<p>Size Factor：TPC-H 测试数据集的大小因子，表示数据集的规模，可以通过该因子扩展数据集大小。</p>
+<p>Price&#x2F;Performance：每单位吞吐量成本，表示数据库系统每处理一个查询的成本。</p>
+<h3 id="TPC-DS"><a href="#TPC-DS" class="headerlink" title="TPC-DS"></a>TPC-DS</h3><p>TPC-DS（Transaction Processing Performance Council Benchmark DS）是一个基准测试，用于评估关系型数据库系统（RDBMS）的决策支持（decision support）性能，类似于 TPC-H，但更加复杂和全面。</p>
+<p>TPC-DS 是一个包含 99 个查询的测试，用于模拟真实的商业智能（business intelligence）应用程序。这些查询可以根据需要调整，以便测试不同的数据访问模式和查询类型，例如聚合、过滤、排序、连接、子查询等。TPC-DS 的查询非常复杂，涉及到多个表和多个数据集，模拟了实际应用程序的复杂性。</p>
+<p>TPC-DS 的数据集由 17 个表组成，每个表都包含大量数据，并且可以根据需要扩展到更大的数据量。这些表包括：customer、customer_address、customer_demographics、date_dim、household_demographics、income_band、item、promotion、reason、ship_mode、store、store_returns、store_sales、time_dim、warehouse、web_page 和 web_sales。</p>
+<p>TPC-DS 主要衡量查询吞吐量和响应时间。吞吐量指数据库系统能够处理的查询数量，响应时间指单个查询的执行时间。TPC-DS 的指标包括以下几项：</p>
+<p>QphDS（Queries per Hour DS）：TPC-DS 测试中查询的数量，表示每小时可以处理的查询数量。</p>
+<p>QppDS（Queries per Parallel Hour）：TPC-DS 测试中并行查询的数量，表示每小时可以处理的并行查询数量。</p>
+<p>Size Factor：TPC-DS 测试数据集的大小因子，表示数据集的规模，可以通过该因子扩展数据集大小。</p>
+<p>Price&#x2F;Performance：每单位吞吐量成本，表示数据库系统每处理一个查询的成本。</p>
+<h3 id="YCSB"><a href="#YCSB" class="headerlink" title="YCSB"></a>YCSB</h3><p>Github Repo<br>YCSB（Yahoo! Cloud Serving Benchmark）是一个通用的基准测试，主要用于评估 NoSQL 数据库系统的性能。它可以帮助用户比较不同的 NoSQL 数据库的性能，并选择最适合其需求的数据库。YCSB 主要用于以下方面：</p>
+<p>基准测试：YCSB 可以帮助用户进行基准测试，比较不同的 NoSQL 数据库的性能。用户可以使用 YCSB 测试工具对不同的数据库进行测试，然后根据测试结果选择最适合自己需求的数据库。</p>
+<p>性能调优：YCSB 可以帮助用户进行性能调优，优化数据库的读写性能。用户可以通过修改 YCSB 测试工具的负载参数来模拟实际的读写场景，然后测试不同的数据库的性能，最终找到最优的读写性能参数。</p>
+<p>新数据库测试：YCSB 可以帮助用户测试新的 NoSQL 数据库。如果用户要使用一个新的 NoSQL 数据库，可以使用 YCSB 测试工具测试其性能，并与已有的数据库进行比较。这可以帮助用户了解新数据库的性能和特点。</p>
+<p>集群部署测试：YCSB 可以帮助用户测试分布式 NoSQL 数据库集群的性能。用户可以使用 YCSB 测试工具测试不同节点之间的数据交互性能，了解集群的性能和瓶颈。</p>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+      <tags>
+        <tag>benchmark</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Cmu15445</title>
+    <url>/cmu15445/</url>
+    <content><![CDATA[<h2 id="2-Modern-SQL"><a href="#2-Modern-SQL" class="headerlink" title="2: Modern SQL"></a>2: Modern SQL</h2><p>SQL is based on bags (duplicates) not sets (no duplicates)</p>
+<ul>
+<li>Window function</li>
+</ul>
+<h2 id="3-Storage"><a href="#3-Storage" class="headerlink" title="3: Storage"></a>3: Storage</h2><ol>
+<li>Layingout<ol>
+<li>Slotted Page</li>
+<li>Log-structured</li>
+</ol>
+</li>
+</ol>
+<h2 id="4-Storage2"><a href="#4-Storage2" class="headerlink" title="4: Storage2"></a>4: Storage2</h2><ol>
+<li>Log-Structured Storage</li>
+<li>Data Representation</li>
+</ol>
+<h2 id="5-Storage-Models-amp-Compression"><a href="#5-Storage-Models-amp-Compression" class="headerlink" title="5: Storage Models &amp; Compression"></a>5: Storage Models &amp; Compression</h2><ol>
+<li>HTAP</li>
+<li>Storage Models<ol>
+<li>N-Ary Storage Model -&gt; OLTP</li>
+<li>Decomposition Storage Model -&gt; OLAP</li>
+</ol>
+</li>
+<li>Data Compression<ol>
+<li>tradeoff</li>
+<li>properties</li>
+</ol>
+</li>
+</ol>
+<h2 id="6-Buffer-Pools"><a href="#6-Buffer-Pools" class="headerlink" title="6: Buffer Pools"></a>6: Buffer Pools</h2><ol>
+<li>Locks vs. Latches</li>
+<li>Optimization</li>
+<li>Buffer Replacement<ol>
+<li>LRU</li>
+<li>Clock - 类似 second chance</li>
+</ol>
+</li>
+</ol>
+<h2 id="7-Hash-Tables"><a href="#7-Hash-Tables" class="headerlink" title="7: Hash Tables"></a>7: Hash Tables</h2><ol>
+<li><p>Hashtable</p>
+<ol>
+<li>Hash Function</li>
+<li>Hashing Scheme</li>
+</ol>
+</li>
+<li><p>Static Hashing</p>
+<ol>
+<li>Linear Probe Hashing - circle 寻找空的位置<ol>
+<li>Delete - tombstones</li>
+<li>Non-unique keys<ol>
+<li>Seperate Linked List</li>
+<li>Redundant Keys</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>Robin Hood Hashing<ol>
+<li>Reduce the maximum distance of each key from optimal position</li>
+</ol>
+</li>
+<li>Cuckoo Hashing<ol>
+<li>Choose and evict the old entry -&gt; new hashtable</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>Dynamic Hashing</p>
+<ol>
+<li>Chained Hashing</li>
+<li>Extendible Hashing</li>
+<li>split pointer that keeps track of the next bucket</li>
+</ol>
+</li>
+</ol>
+<h2 id="17-Timestamp-Ordering-Concurrency-Control"><a href="#17-Timestamp-Ordering-Concurrency-Control" class="headerlink" title="17: Timestamp Ordering Concurrency Control"></a>17: Timestamp Ordering Concurrency Control</h2><h2 id="18-Multi-Version-Concurrency-Control"><a href="#18-Multi-Version-Concurrency-Control" class="headerlink" title="18: Multi-Version Concurrency Control"></a>18: Multi-Version Concurrency Control</h2>]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>PostgreSQL</title>
+    <url>/postgresql/</url>
+    <content><![CDATA[<h2 id="起步"><a href="#起步" class="headerlink" title="起步"></a>起步</h2><figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">sudo -u postgres psql</span><br><span class="line"></span><br><span class="line">CREATE ROLE hanwen WITH LOGIN CREATEDB PASSWORD <span class="string">&quot;hanwen&quot;</span>;</span><br><span class="line">CREATE DATABASE hanwen WITH OWNER hanwen;</span><br></pre></td></tr></table></figure>
+
+<p>日常使用的时候就可以使用 hanwen 了。<br>使用 <code>\du</code> 查看 ROLE，使用 <code>\dt</code> 查看 TABLES。<br>在 hanwen 子用户里面创建的 tables 在根用户是不可见的。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line"><span class="comment"># 生成对应的表</span></span><br><span class="line">psql -f schema.sql</span><br></pre></td></tr></table></figure>
+
+<p>接下来过程需要添加权限。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">sudo -u postgres psql</span><br><span class="line">ALTER ROLE hanwen WITH SUPERUSER;</span><br></pre></td></tr></table></figure>
+
+<p>拷贝的时候出现问题，挪动到 &#x2F;tmp 文件夹。</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"># 从本地文件构造数据库</span><br><span class="line">psql <span class="operator">-</span>vdatadir<span class="operator">=</span>&quot;&#x27;/tmp/jo-bench&#x27;&quot; <span class="operator">-</span>f <span class="operator">/</span>tmp<span class="operator">/</span>jo<span class="operator">-</span>bench<span class="operator">/</span>copy.sql</span><br></pre></td></tr></table></figure>
+
+<p>启示 -&gt; 对于 clone 别人的仓库的工作，最好先 fork 然后再进行修改，这样更加灵活。</p>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+      <tags>
+        <tag>postgresql</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>共识算法的学习</title>
+    <url>/consensus-algorithm/</url>
+    <content><![CDATA[<h2 id="拜占庭将军问题"><a href="#拜占庭将军问题" class="headerlink" title="拜占庭将军问题"></a>拜占庭将军问题</h2><p>m -&gt; 3m+1</p>
+<h2 id="CAP-理论"><a href="#CAP-理论" class="headerlink" title="CAP 理论"></a>CAP 理论</h2><p>InfluxDB 的 META 节点和 DATA 节点为例，一个项目里面可以使用 AP 和 CP。</p>
+<h2 id="2PC"><a href="#2PC" class="headerlink" title="2PC"></a>2PC</h2><p>2PC 是一切的基础。</p>
+<p>两个阶段，即一个是 Request, Commit</p>
+<h2 id="Paxos"><a href="#Paxos" class="headerlink" title="Paxos"></a>Paxos</h2><p>在 2PC 的基础上包含了事件的编号。<br>成员：Proposer, Acceptor, Learner<br>过程：Prepare, Accept</p>
+<p>进阶是 Multi Paxos, 但是不关心操作的顺序性。</p>
+<h2 id="Raft"><a href="#Raft" class="headerlink" title="Raft"></a>Raft</h2><p>Raft 算法不同于 Multi-Paxos 算法。</p>
+<ol>
+<li>选举 Leader<ol>
+<li>不是所有节点都能当 leader，只有最完整的节点才能当选</li>
+<li>随机超时时间：避免同时发起选举，减少选举失败的情况</li>
+</ol>
+</li>
+<li>日志同步</li>
+</ol>
+<h2 id="InfluxDB-的讲解"><a href="#InfluxDB-的讲解" class="headerlink" title="InfluxDB 的讲解"></a>InfluxDB 的讲解</h2><h3 id="CP"><a href="#CP" class="headerlink" title="CP"></a>CP</h3><p>通过 Raft 算法，我们能实现强一致性的分布式系统，能保证写操作完成后，后续所有的 读操作，都能读取到最新的数据。</p>
+<h3 id="AP"><a href="#AP" class="headerlink" title="AP"></a>AP</h3><p>AP 部分则复杂一些。</p>
+<h4 id="自定义副本数"><a href="#自定义副本数" class="headerlink" title="自定义副本数"></a>自定义副本数</h4><h4 id="Hinted-handoff"><a href="#Hinted-handoff" class="headerlink" title="Hinted-handoff"></a>Hinted-handoff</h4><ul>
+<li>写失败的请求，会缓存到本地硬盘上</li>
+<li>周期性重传</li>
+</ul>
+<h4 id="反熵"><a href="#反熵" class="headerlink" title="反熵"></a>反熵</h4><h4 id="Quorum-NWR"><a href="#Quorum-NWR" class="headerlink" title="Quorum NWR"></a>Quorum NWR</h4><p>强一致性：每次读操作都需要能读取到最新的数据，不能读到旧数据。</p>
+<h2 id="MVCC"><a href="#MVCC" class="headerlink" title="MVCC"></a>MVCC</h2><h3 id="核心的一种算法是-MVTO"><a href="#核心的一种算法是-MVTO" class="headerlink" title="核心的一种算法是 MVTO"></a>核心的一种算法是 MVTO</h3><p>读：只能读自己或者之前人写入的东西<br>写：如果被之后的事务读过，就不能进行修改 -&gt; abort -&gt; 级联终止</p>
+<h2 id="Transaction"><a href="#Transaction" class="headerlink" title="Transaction"></a>Transaction</h2><h3 id="四种隔离级别"><a href="#四种隔离级别" class="headerlink" title="四种隔离级别"></a>四种隔离级别</h3><ol>
+<li>ReadUncommitted - 解决了脏写问题，通过对于数据加锁<ol>
+<li>Read: 直接读最新的</li>
+<li>Write: 直接写</li>
+</ol>
+</li>
+<li>ReadCommitted - 解决了脏读问题<ol>
+<li>Read: 需要检查 timestamp，只能读当前事务之前的</li>
+<li>Write:<ol>
+<li>[舍弃] 查是否有之后事务进行写入，如果有就 <code>errConcurrentWriteConflict</code></li>
+<li>直接写入</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>RepeatableRead - 解决不可重复读问题，MVCC 解决（而不是使用锁）<ol>
+<li>Read:<ol>
+<li><code>WriteSet</code> 读到的和当前事务新写入的一致</li>
+<li><code>ReadSet</code> 没有新写入就和之前读到的一致</li>
+<li>需要检查 timestamp，只能读当前事务之前的，保存在 <code>ReadSet</code> 中</li>
+</ol>
+</li>
+<li>Write:<ol>
+<li>检查是否有之后事务进行写入，如果有就 <code>errConcurrentWriteConflict</code></li>
+<li>直接写入并且更新 <code>WriteSet</code></li>
+</ol>
+</li>
+</ol>
+</li>
+<li>Serializable - 解决幻读问题<ol>
+<li>Read:<ol>
+<li><strong>RepeatableRead</strong> 作为基础</li>
+<li><code>lockedKeys</code> 标注 <code>Keys</code> 被占用了，不会被其他事务操作</li>
+</ol>
+</li>
+<li>Write:<ol>
+<li>先检查是否要操作 <code>lockedKeys</code> 中的元素</li>
+<li>剩余操作和 <strong>RepeatableRead</strong> 相同</li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+<h4 id="Rollback-的操作"><a href="#Rollback-的操作" class="headerlink" title="Rollback 的操作"></a>Rollback 的操作</h4><p>如果事务 A &amp; B 并行，事务 A rollback 不应该影响 B 的执行结果。</p>
+<p>目前我们的实现是在 ReadCommitted 以上的隔离标准中，不允许并发的写。所以很好维护 rollback。但还是需要分情况讨论，不能直接 rollback 回 transaction 开始的值。</p>
+<ol>
+<li><p>ReadUncommitted</p>
+<ol>
+<li>如果别的事务更新了<ol>
+<li>覆盖更新：那就 let it go，不用操作了</li>
+<li>基于更新后的值，那就全都撤销了</li>
+</ol>
+</li>
+<li>如果没有别的事务更新，那就 rollback 回之前的值</li>
+</ol>
+</li>
+<li><p>ReadCommitted</p>
+<ol>
+<li>事务更新了 -&gt; 别的事务不能更新</li>
+<li></li>
+</ol>
+</li>
+<li><p>RepeatableRead</p>
+</li>
+<li><p>Serializable</p>
+</li>
+<li></li>
+</ol>
+]]></content>
+      <categories>
+        <category>Distributed System</category>
+      </categories>
+      <tags>
+        <tag>Consensus</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Slotted Pages</title>
+    <url>/slotted-pages/</url>
+    <content><![CDATA[<h2 id="Core-Concepts"><a href="#Core-Concepts" class="headerlink" title="Core Concepts"></a>Core Concepts</h2><p><strong>Database Page</strong>: The smallest unit a database read and write from the disk.</p>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Telekom Terraform Setup Environment</title>
+    <url>/telekom-cloud/</url>
+    <content><![CDATA[<p>clouds.yaml 是作为连接云平台的凭证，需要在每个对应文件夹中都添加。使用 <code>openstack --os-cloud otc server list</code> 来检测连接的情况。</p>
+<h2 id="Terraform-Configuration"><a href="#Terraform-Configuration" class="headerlink" title="Terraform Configuration"></a>Terraform Configuration</h2><h3 id="NAT-GATEWAY"><a href="#NAT-GATEWAY" class="headerlink" title="NAT GATEWAY"></a>NAT GATEWAY</h3><p>The NAT Gateway service provides network address translation (NAT) with 20 Gbit&#x2F;s of bandwidth for Elastic Cloud Servers (ECSs) and Bare Metal Servers (BMSs) in a Virtual Private Cloud (VPC).</p>
+<h4 id="SNAT-向外连接"><a href="#SNAT-向外连接" class="headerlink" title="SNAT - 向外连接"></a>SNAT - 向外连接</h4><p>SNAT 将 Private IP 地址转换为弹性 IP 地址，使 VPC 内的服务器共享一个弹性 IP 地址，从而安全高效地访问 Internet。</p>
+<p>通俗语言理解：云主机只有自己的 private ip 地址，需要通过 NAT GATEWAY 的弹性 IP 才能访问外界的互联网。</p>
+<h4 id="DNAT-允许外部向内连接"><a href="#DNAT-允许外部向内连接" class="headerlink" title="DNAT - 允许外部向内连接"></a>DNAT - 允许外部向内连接</h4><p>DNAT 使 VPC 内的服务器共享一个 EIP，通过 IP 地址映射或端口映射提供公网访问的服务。</p>
+<p>通俗语言理解：外界用户想要访问云上的资源，可以通过不同的 port 来实现连接到不同的云主机的服务。</p>
+<h3 id="VPC"><a href="#VPC" class="headerlink" title="VPC"></a>VPC</h3><p>VPC（Virtual Private Cloud）是指一种虚拟化的网络环境，用于在公共云中创建隔离的、私有的虚拟网络。VPC 允许用户在云中创建自己的虚拟网络拓扑，并可以控制虚拟网络中的资源（如虚拟机、存储、网络等）。</p>
+<p>VPC 通常提供以下功能：</p>
+<ol>
+<li><p>网络隔离：VPC 允许用户创建隔离的虚拟网络，可以防止不同应用程序或用户之间的网络流量互相干扰。</p>
+</li>
+<li><p>子网划分：VPC 允许用户将虚拟网络划分为多个子网，可以更好地管理和分配 IP 地址。</p>
+</li>
+<li><p>路由控制：VPC 允许用户控制虚拟网络中的路由，从而可以实现自定义网络拓扑和流量管理。</p>
+</li>
+<li><p>安全性：VPC 允许用户通过安全组、ACL（Access Control List）等机制来控制虚拟网络中的访问权限，从而可以提高网络安全性。</p>
+</li>
+</ol>
+<h3 id="Subnet"><a href="#Subnet" class="headerlink" title="Subnet"></a>Subnet</h3><p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
+<p>Subnet CIDR（Classless Inter-Domain Routing）是指用于划分网络地址空间的一种方法，其中 CIDR 表示一个 IP 地址和它的子网掩码，用斜杠（&#x2F;）分隔。</p>
+<p>VPC 下面可以有多个 Subnet，其中每个 Subnet 还有自己的 Network ID 和 Subnet ID。</p>
+<h2 id="复杂文件架构"><a href="#复杂文件架构" class="headerlink" title="复杂文件架构"></a>复杂文件架构</h2><ol>
+<li>多文件夹<br>在主目录下面配置 main.tf，然后各个自文件夹是独立的模块。<br>自文件夹中需要输入的元素，可以在子文件夹中配置成 input，然后在主目录输入。</li>
+</ol>
+]]></content>
+      <tags>
+        <tag>telekom</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Pytest</title>
+    <url>/pytest-learning/</url>
+    <content><![CDATA[<h2 id="Pytest"><a href="#Pytest" class="headerlink" title="Pytest"></a>Pytest</h2><p>Pytest 是基于 unittest 衍生出来的测试框架，使用起来更加简单、效率更高。</p>
+<h3 id="1-mock"><a href="#1-mock" class="headerlink" title="1. mock"></a>1. mock</h3><p>mock 库包含两个基础的概念，一个是 Mock 类，一个是 patch。</p>
+<blockquote>
+<p>单元测试是自动化测试的至高境界，其中 mock 是单元测试的精髓。</p>
+</blockquote>
+<p>直接创建 Mock 对象，简单情况下只需要通过 return_value 来指定返回值。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">m = Mock(side_effect=Exception(<span class="string">&#x27;boom&#x27;</span>))</span><br><span class="line"><span class="keyword">with</span> pytest.raises(Exception):</span><br><span class="line">    m()</span><br></pre></td></tr></table></figure>
+
+<p>Mock 类的初始化方法</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">unittest</span>.mock.Mock(spec=<span class="literal">None</span>, side_effect=<span class="literal">None</span>, return_value=DEFAULT, wraps=<span class="literal">None</span>, name=<span class="literal">None</span>, spec_set=<span class="literal">None</span>, unsafe=<span class="literal">False</span>, **kwargs)</span><br></pre></td></tr></table></figure>
+
+<p>最重要的两个参数：</p>
+<ul>
+<li><code>return_value</code>: 表示 Mock 对象不变的返回值</li>
+<li><code>side_effect</code>: 用于指定可变的返回值或者抛出特定的异常。<ul>
+<li>异常类：执行 Mock 对象时就会抛出此异常</li>
+<li>方法：将 Mock 对象执行的参数传递给 side_effect 指定的方法，并将此方法返回的值作为 Mock 对象的返回值</li>
+<li>迭代器：执行 Mock 对象就会从这个可迭代的对象中获取一个值进行返回</li>
+</ul>
+</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">m = Mock(side_effect=Exception(<span class="string">&#x27;boom&#x27;</span>))</span><br><span class="line"><span class="keyword">with</span> pytest.raises(Exception):</span><br><span class="line">    m()</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">m = Mock(side_effect=[<span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>])</span><br><span class="line"><span class="keyword">assert</span> m() == <span class="number">3</span></span><br><span class="line"><span class="keyword">assert</span> m() == <span class="number">4</span></span><br><span class="line"><span class="keyword">assert</span> m() == <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="2-patch"><a href="#2-patch" class="headerlink" title="2. @patch"></a>2. @patch</h3><p>patch 用于在特定范围内执行模拟。patch 有多种使用方法，可以使用装饰器方法，也可以使用 with 语句，也可以通过 <code>start()</code> 和 <code>stop()</code> 方法指定模拟的开始和结束。</p>
+<ul>
+<li>patch 装饰器，创建的模拟对象会通过参数传递给方法。<br>使用 <code>Mock</code> 创建模拟对象，模拟任意方法和类。使用 <code>patch()</code> 方法执行模拟。</li>
+</ul>
+<p><a href="https://bbs.csdn.net/topics/607947141">Pytest 如何使用猴子补丁</a> - 暂时和我们没有太大的关系<br>monkeypath - 某些情况下只想做一些测试，并不想做永久的修改。</p>
+<h4 id="3-1-pytest-mark-parametrize-给-pytest-添加参数"><a href="#3-1-pytest-mark-parametrize-给-pytest-添加参数" class="headerlink" title="3.1 @pytest.mark.parametrize - 给 pytest 添加参数"></a>3.1 @pytest.mark.parametrize - 给 pytest 添加参数</h4><figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="comment"># content of test_expectation.py</span></span><br><span class="line"><span class="keyword">import</span> pytest</span><br><span class="line"></span><br><span class="line"><span class="meta">@pytest.mark.parametrize(<span class="params"><span class="string">&quot;test_input,expected&quot;</span>, [(<span class="params"><span class="string">&quot;3+5&quot;</span>, <span class="number">8</span></span>), (<span class="params"><span class="string">&quot;2+4&quot;</span>, <span class="number">6</span></span>), (<span class="params"><span class="string">&quot;6*9&quot;</span>, <span class="number">42</span></span>)]</span>)</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">test_eval</span>(<span class="params">test_input, expected</span>):</span><br><span class="line">    <span class="keyword">assert</span> <span class="built_in">eval</span>(test_input) == expected</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-2-pytest-mark-order"><a href="#3-2-pytest-mark-order" class="headerlink" title="3.2 @pytest.mark.order()"></a>3.2 @pytest.mark.order()</h4><p>pytest-ordering— 指定用例的运行顺序</p>
+<ol>
+<li>方式一：</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@pytest.mark.run(<span class="params"><span class="string">&#x27;first&#x27;</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params"><span class="string">&#x27;second&#x27;</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params"><span class="string">&#x27;second_to_last&#x27;</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params"><span class="string">&#x27;last&#x27;</span></span>)</span></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>方式二：</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@pytest.mark.first</span></span><br><span class="line"><span class="meta">@pytest.mark.second</span></span><br><span class="line"><span class="meta">@pytest.mark.second_to_last</span></span><br><span class="line"><span class="meta">@pytest.mark.last</span></span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>方式三：</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="meta">@pytest.mark.run(<span class="params">order=<span class="number">1</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params">order=<span class="number">2</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params">order=-<span class="number">2</span></span>)</span></span><br><span class="line"><span class="meta">@pytest.mark.run(<span class="params">order=-<span class="number">1</span></span>)</span></span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Python 中的多进程</title>
+    <url>/python-multiprocess/</url>
+    <content><![CDATA[<h2 id="Python-性质"><a href="#Python-性质" class="headerlink" title="Python 性质"></a>Python 性质</h2><h3 id="1-map-和-starmap-的区别"><a href="#1-map-和-starmap-的区别" class="headerlink" title="1. map 和 starmap 的区别"></a>1. map 和 starmap 的区别</h3><p>在 Python 中两者区别在于如何应对参数。</p>
+<p>map 只能带 single argument</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Pool, <span class="built_in">map</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a function that takes a single argument</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">double</span>(<span class="params">x</span>):</span><br><span class="line">    <span class="keyword">return</span> x * <span class="number">2</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Create a list of numbers</span></span><br><span class="line">numbers = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Create a pool of workers</span></span><br><span class="line"><span class="keyword">with</span> Pool() <span class="keyword">as</span> pool:</span><br><span class="line">    <span class="comment"># Use the map function to apply the double function to each element</span></span><br><span class="line">    doubled_numbers = pool.<span class="built_in">map</span>(double, numbers)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Print the resulting list</span></span><br><span class="line"><span class="built_in">print</span>(doubled_numbers)  <span class="comment"># [2, 4, 6, 8, 10]</span></span><br></pre></td></tr></table></figure>
+
+<p>starmap 可以带 multiple arguments</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">from</span> multiprocessing <span class="keyword">import</span> Pool, starmap</span><br><span class="line"></span><br><span class="line"><span class="comment"># Define a function that takes multiple arguments</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">multiply</span>(<span class="params">x, y</span>):</span><br><span class="line">    <span class="keyword">return</span> x * y</span><br><span class="line"></span><br><span class="line"><span class="comment"># Create a list of tuples</span></span><br><span class="line">pairs = [(<span class="number">1</span>, <span class="number">2</span>), (<span class="number">3</span>, <span class="number">4</span>), (<span class="number">5</span>, <span class="number">6</span>)]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Create a pool of workers</span></span><br><span class="line"><span class="keyword">with</span> Pool() <span class="keyword">as</span> pool:</span><br><span class="line">    <span class="comment"># Use the starmap function to apply the multiply function to each element</span></span><br><span class="line">    multiplied_pairs = pool.starmap(multiply, pairs)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Print the resulting list</span></span><br><span class="line"><span class="built_in">print</span>(multiplied_pairs)  <span class="comment"># [2, 12, 30]</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ol>
+<li>不要使用 jupyter notebook<br>因为 jupyter 只能追踪主进程，不能追踪子进程，所以需要使用 py 文件进行测试。</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Python</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Soverign Cloud Stack</title>
+    <url>/soverign-cloud-stack/</url>
+    <content><![CDATA[<h2 id="Zuul"><a href="#Zuul" class="headerlink" title="Zuul"></a>Zuul</h2><h2 id="Argo"><a href="#Argo" class="headerlink" title="Argo"></a>Argo</h2><p>Control and Organize the workflow</p>
+]]></content>
+      <categories>
+        <category>Cloud Computing</category>
+      </categories>
+      <tags>
+        <tag>cloud</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Angular Onboarding for Product Tours</title>
+    <url>/angular-tour-guide/</url>
+    <content><![CDATA[<p>需要创建一个 angular-tour-guide</p>
+<p>尝试了很多种 libraries，最后还是使用 <code>angular-shepherd</code> 来进行操作和配置。</p>
+<p>主要的诉求就是下一项的时候可以切换页面，这个由 <code>ShepherdService</code> 内部的 <code>action</code> 函数实现。</p>
+<figure class="highlight js"><table><tr><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">classes</span>: <span class="string">&quot;shepherd-button-primary&quot;</span>,</span><br><span class="line">  <span class="attr">text</span>: <span class="string">&quot;Switch Page&quot;</span>,</span><br><span class="line">  <span class="attr">action</span>: <span class="function">() =&gt;</span> &#123;</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">router</span>.<span class="title function_">navigateByUrl</span>(<span class="string">&#x27;/cart&#x27;</span>)</span><br><span class="line">    <span class="variable language_">this</span>.<span class="property">shepherdService</span>.<span class="title function_">next</span>()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="实现过程"><a href="#实现过程" class="headerlink" title="实现过程"></a>实现过程</h2><h3 id="1-安装-angular-shepherd"><a href="#1-安装-angular-shepherd" class="headerlink" title="1. 安装 angular-shepherd"></a>1. 安装 angular-shepherd</h3><p>npm install –save moduleName # –save 的意思是将模块安装到项目目录下，并在 package 文件的 dependencies 节点写入依赖。</p>
+<p>直接安装 shepherd 最新版本就好，避免相关依赖的问题</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">npm install angular-shepherd --save</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-引入相关"><a href="#2-引入相关" class="headerlink" title="2. 引入相关"></a>2. 引入相关</h3><h3 id="3-编写-steps"><a href="#3-编写-steps" class="headerlink" title="3. 编写 steps"></a>3. 编写 steps</h3><h3 id="4-设计"><a href="#4-设计" class="headerlink" title="4. 设计"></a>4. 设计</h3>]]></content>
+      <categories>
+        <category>Full Stack</category>
+      </categories>
+      <tags>
+        <tag>angular</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Linux 内核那些事儿</title>
+    <url>/linux-kernel/</url>
+    <content><![CDATA[<h2 id="drivers"><a href="#drivers" class="headerlink" title="drivers"></a>drivers</h2><ol>
+<li>Spin Lock</li>
+</ol>
+<p>使用的 <code>spin_lock_irqsave</code> 函数，禁用中断并且获取自旋锁 <code>my_spinlock</code>。接下来的关键代码段可以安全地访问共享资源，因为知道没有其他线程或进程可以同时获取相同的锁。一旦临界区完成，自旋锁就会被释放，中断会通过 <code>spin_unlock_irqrestore</code> 函数恢复到它们之前的状态。</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">long</span> flags;</span><br><span class="line"></span><br><span class="line"><span class="type">spinlock_t</span> my_spinlock;</span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_lock_irqsave</span>(&amp;my_spinlock, flags);</span><br><span class="line"></span><br><span class="line"><span class="comment">/*critical section, access shared resource here*/</span></span><br><span class="line"></span><br><span class="line"><span class="built_in">spin_unlock_irqrestore</span>(&amp;my_spinlock, flags);</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>kmalloc</li>
+</ol>
+<p>kmalloc is a kernel memory allocation function in Linux.</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">char</span> *my_ptr;</span><br><span class="line"></span><br><span class="line">my_ptr = <span class="built_in">kmalloc</span>(<span class="number">1024</span>, GFP_KERNEL);</span><br></pre></td></tr></table></figure>
+
+<h3 id="drivers-x2F-nvme-x2F-host-x2F-pci-c"><a href="#drivers-x2F-nvme-x2F-host-x2F-pci-c" class="headerlink" title="drivers&#x2F;nvme&#x2F;host&#x2F;pci.c"></a>drivers&#x2F;nvme&#x2F;host&#x2F;pci.c</h3><p>最核心的调度逻辑</p>
+<p>从 1031 行的 <code>nvme_handle_cqe()</code> 开始是处理 xrp 的函数。在 1107 行是经典的 <code>ebpf_return = BPF_PROG_RUN(ebpf_prog, &amp;ebpf_context);</code>。</p>
+<p>预期修改：添加 maximum 检测以实现更安全的调度。</p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> MAX_XRP_COUNT 1000</span></span><br><span class="line"><span class="keyword">if</span>(xrp_ebpf_count&gt;MAX_XRP_COUNT)&#123;</span><br><span class="line">  <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="fs"><a href="#fs" class="headerlink" title="fs"></a>fs</h2><h3 id="fs-x2F-read-write-c"><a href="#fs-x2F-read-write-c" class="headerlink" title="fs&#x2F;read_write.c"></a>fs&#x2F;read_write.c</h3><h3 id="fs-x2F-ioctl-c"><a href="#fs-x2F-ioctl-c" class="headerlink" title="fs&#x2F;ioctl.c"></a>fs&#x2F;ioctl.c</h3><p>在这个文件里面定义了 <code>xrp_resubmit_level_count</code></p>
+<figure class="highlight cpp"><table><tr><td class="code"><pre><span class="line"><span class="type">long</span> _xrp_resubmit_level_count = <span class="built_in">atomic_long_xchg</span>(&amp;xrp_resubmit_level_count, <span class="number">0</span>);</span><br></pre></td></tr></table></figure>
+]]></content>
+      <tags>
+        <tag>Linux</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Serverless-Distributed-Data-Processing</title>
+    <url>/serverless-distributed-data-processing/</url>
+    <content><![CDATA[<p>A serverless pipeline to process large csv files to produce results has been implemented in the following paper.</p>
+<p>The core features we want to implement are:</p>
+<p>Support static workload and dynamic workloads<br>Multistage pipeline<br>Considering the above requirements, the event triggers are generally used.</p>
+<h2 id="Architecture"><a href="#Architecture" class="headerlink" title="Architecture"></a>Architecture</h2><p><img data-src="/serverless-distributed-data-processing/serverless-pipeline.svg"></p>
+<h3 id="Stage1"><a href="#Stage1" class="headerlink" title="Stage1"></a>Stage1</h3><p>Upload one file to Azure Blob Storage system, trigger the <code>partitioner</code> function in the Azure Function partition it to specific equally sized files.</p>
+<h3 id="Stage2"><a href="#Stage2" class="headerlink" title="Stage2"></a>Stage2</h3><p>For each generated partition file, trigger the <code>worker</code> function in the Azure Function to generate the temporary results. The results is in Azure Queue Storage system.</p>
+<h3 id="Stage3"><a href="#Stage3" class="headerlink" title="Stage3"></a>Stage3</h3><p>For each generated message in Azure Queue Storage, trigger the <code>aggregationer</code> function in the Azure Function to aggregate the final result in the cosmosDB.</p>
+<h3 id="Stage4"><a href="#Stage4" class="headerlink" title="Stage4"></a>Stage4</h3><p>When the result in the CosmosDB is updated, trigger the <code>reporter</code> function in the Azure Function to report the result in the Azure Service Bus (Message Queue).</p>
+<h2 id="Implementation-Details"><a href="#Implementation-Details" class="headerlink" title="Implementation Details"></a>Implementation Details</h2><ol>
+<li></li>
+</ol>
+]]></content>
+  </entry>
+  <entry>
+    <title>MinIO</title>
+    <url>/minio/</url>
+    <content><![CDATA[<p>MinIO 是一款高性能、分布式的对象存储系统。针对性能要求更高的私有云标准进行软件架构设计，并且只为对象存储设计，实现具有弹性伸缩能力的原生对象存储服务。</p>
+<p>编程语言：Go, 项目主页：<a href="https://min.io/">min.io</a>, Github 地址：<a href="https://github.com/minio/minio">minio&#x2F;minio</a></p>
+<h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><p>MinIO 设计为云原生，可以作为轻量级容器运行，由外部编排服务（如 Kubernetes）管理。整个服务器约为 40MB 静态二进制文件，即使在高负载下也可以高效利用 CPU 和内存资源。结果是您可以在共享硬件上共同托管大量租户。</p>
+<p><img data-src="/minio/architecture_diagram.svg" alt="Architecture"></p>
+<p>AWS S3 Compatibility 可以兼容 S3 的 API，就有很好的迁移能力。</p>
+<p>MinIO 将数据和元数据作为对象一起写入，从而无需使用元数据数据库。</p>
+]]></content>
+      <categories>
+        <category>Cloud Computing</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>WebAssembly 相关内容</title>
+    <url>/webassembly/</url>
+    <content><![CDATA[<h2 id="直观认知"><a href="#直观认知" class="headerlink" title="直观认知"></a>直观认知</h2><p>中间的 Binary 就是生成的编译目标 WebAssembly。</p>
+<h2 id="发展动机和历程"><a href="#发展动机和历程" class="headerlink" title="发展动机和历程"></a>发展动机和历程</h2><p><img data-src="/webassembly/1.jpg"></p>
+<h3 id="JavaScript"><a href="#JavaScript" class="headerlink" title="JavaScript"></a>JavaScript</h3><p>JavaScript 在浏览器中会运行，但是没有静态变量类型，就导致性能会降低。虽然浏览器的引擎会对执行次数较多的 function 进行优化：将其代码编译成 Machine Code 然后打包送到顶部的 Just-In-Time Compiler。下次如果再次执行就会直接执行编译好的机器码。但是由于 JavaScript 的动态变量，同一个参数名对应的变量可能会改变，所以引擎做的优化就失去了作用，还要再次进行优化。</p>
+<h3 id="asm-js-的出现"><a href="#asm-js-的出现" class="headerlink" title="asm.js 的出现"></a>asm.js 的出现</h3><p>asm.js 是 JavaScript 的子集，但是反之不一定成立。和 WebAssembly 一样，是一个编译目标，不是由用户手写的。</p>
+<p>整体评价：带有了静态类型，但是并没有完全解决问题。因为还是要经过耗费时间最长的的 <code>Parser</code> 和 <code>ByteCode Compiler</code>。</p>
+<h3 id="WebAssembly"><a href="#WebAssembly" class="headerlink" title="WebAssembly"></a>WebAssembly</h3><p>2015 年出现了 WebAssembly，是经过编译器编译之后的代码，体积小，起步快，语法上完全脱离 JavaScript，同时具有沙盒化的执行环境。WebAssembly 具有强制静态类型，是 C&#x2F;C++&#x2F;Rust 的编译目标。</p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><ol>
+<li><p>AutoCAD<br>原本是使用 C++ 实现的，现在可以直接将所有的源代码快速编译成 WebAssembly，实现了 Web 版本的程序。</p>
+</li>
+<li><p>Google Earth<br>因为需要展示很多 3D 的图像，原本的实现有一些 Native 的技术。通过 WebAssembly 可以直接编译成 Web 的版本，就顺利很多。</p>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Cloud Computing</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Bitmap Index Compression</title>
+    <url>/bitmap-index-compression/</url>
+    <content><![CDATA[<h2 id="Basic-Concepts"><a href="#Basic-Concepts" class="headerlink" title="Basic Concepts"></a>Basic Concepts</h2><ol>
+<li>contingency table</li>
+</ol>
+<p>Show correlation of the columns (variable).</p>
+<ol start="2">
+<li><p>total population count - hamming distance</p>
+</li>
+<li><p>Experiments</p>
+<ol>
+<li>fread</li>
+</ol>
+</li>
+</ol>
+<h2 id="Bitmap-Compression"><a href="#Bitmap-Compression" class="headerlink" title="Bitmap Compression"></a>Bitmap Compression</h2><p>From normal bitmap compression, we now focus more on the</p>
+<p><img data-src="/bitmap-index-compression/process.png"></p>
+<p><img data-src="/bitmap-index-compression/family.png"></p>
+<ol>
+<li><p>Byte-Aligned Bitmap Compression (BBC)</p>
+<ul>
+<li>0xxxxxxx</li>
+<li>1xnnnnnn</li>
+</ul>
+</li>
+<li><p>Word-Aligned Hybrid Code (WAH)</p>
+<p> CPU normally read a word, but has so large space to contain the element -&gt; many zeros.<br> EWAH algorithm-&gt; add header to show marked word without need decoding</p>
+</li>
+<li><p>Roaring - combine multiple datastructure [ArrayContainer, BitmapContainer, RunContainer]</p>
+</li>
+<li><p>More algorithms</p>
+<ol>
+<li>Concise, RLH, COMPAX</li>
+</ol>
+</li>
+</ol>
+<hr>
+<h2 id="Corbit"><a href="#Corbit" class="headerlink" title="Corbit"></a>Corbit</h2><p>Naive Thinking about future work:</p>
+<ul>
+<li>Mutually exclusive data (special relation A&#x3D;1, A!&#x3D;1) -&gt; aggressive method -&gt; only one bitmap with compressed representation</li>
+<li>Add experiment: Helpful for the corresponding queries: v1 and v2</li>
+<li>Suitable for growing data?<ul>
+<li>Log coding can suit range bitmap length</li>
+<li>Add leading zeros for increasing data</li>
+</ul>
+</li>
+<li>Correlation Query Benchmark</li>
+<li>Multiple Index connection</li>
+</ul>
+<h2 id="Bitmap-Paper-Reading"><a href="#Bitmap-Paper-Reading" class="headerlink" title="Bitmap Paper Reading"></a>Bitmap Paper Reading</h2><ol>
+<li>[1-4]Progress of Bitmap Compression:<ol>
+<li>From Byte-Aligned Bitmap Compression &#x2F; Word-Aligned Hybrid Code to modern roaring methods</li>
+<li>Increment improvement of the bitmap compression design</li>
+</ol>
+</li>
+<li>[5,6]Evaluation of using Bitmap - e.g. Berkeley 2019</li>
+<li>[7-9]Applied bitmap features in different areas - e.g. ML</li>
+</ol>
+<h3 id="1-A-Survey-of-Bitmap-Index-Compression-Algorithms-for-Big-Data"><a href="#1-A-Survey-of-Bitmap-Index-Compression-Algorithms-for-Big-Data" class="headerlink" title="1. A Survey of Bitmap Index Compression Algorithms for Big Data"></a>1. A Survey of Bitmap Index Compression Algorithms for Big Data</h3><h3 id="2-Consistently-faster-and-smaller-compressed-bitmaps-with-Roaring-Roaring-foundation-paper"><a href="#2-Consistently-faster-and-smaller-compressed-bitmaps-with-Roaring-Roaring-foundation-paper" class="headerlink" title="2. Consistently faster and smaller compressed bitmaps with Roaring - Roaring foundation paper"></a>2. Consistently faster and smaller compressed bitmaps with Roaring - Roaring foundation paper</h3><p>Core Architecture about Roaring</p>
+<h3 id="3-CODIS-A-New-Compression-Scheme-for-Bitmap-Indexes"><a href="#3-CODIS-A-New-Compression-Scheme-for-Bitmap-Indexes" class="headerlink" title="3. CODIS: A New Compression Scheme for Bitmap Indexes"></a>3. CODIS: A New Compression Scheme for Bitmap Indexes</h3><p>COmpressing DIrty Snippet - based on WAH algorithm: Trade some payload for flexibility so that the probability of space reduction is raised -&gt; compression</p>
+<h3 id="4-Variable-Length-Compression-for-Bitmap-Indices"><a href="#4-Variable-Length-Compression-for-Bitmap-Indices" class="headerlink" title="4. Variable Length Compression for Bitmap Indices"></a>4. Variable Length Compression for Bitmap Indices</h3><p>Introducing variable length compression which is better than the fixed length of BBC and WAH.</p>
+<p>More flexible toward shorter runs.</p>
+<h3 id="5-In-Place-Updates-in-Tree-Encoded-Bitmaps"><a href="#5-In-Place-Updates-in-Tree-Encoded-Bitmaps" class="headerlink" title="5. In-Place Updates in Tree-Encoded Bitmaps"></a>5. In-Place Updates in Tree-Encoded Bitmaps</h3><h3 id="6-High-Performance-Queries-Using-Compressed-Bitmap-Indexes-2019-Berkeley"><a href="#6-High-Performance-Queries-Using-Compressed-Bitmap-Indexes-2019-Berkeley" class="headerlink" title="6. High-Performance Queries Using Compressed Bitmap Indexes 2019 Berkeley"></a>6. High-Performance Queries Using Compressed Bitmap Indexes 2019 Berkeley</h3><p>Using the most appropriate bitmap encoding in the query process.</p>
+<p>Considering the query frequency, build an index according to the data type, and then evaluate the performance.</p>
+<h3 id="7-BitTrain-Sparse-Bitmap-Compression-for-Memory-Efficient-Training-on-the-Edge"><a href="#7-BitTrain-Sparse-Bitmap-Compression-for-Memory-Efficient-Training-on-the-Edge" class="headerlink" title="7. BitTrain: Sparse Bitmap Compression for Memory-Efficient Training on the Edge"></a>7. BitTrain: Sparse Bitmap Compression for Memory-Efficient Training on the Edge</h3><p>Using bitmap in the ML training process</p>
+<h3 id="8-Online-Cardinality-Estimation-by-Self-morphing-Bitmaps"><a href="#8-Online-Cardinality-Estimation-by-Self-morphing-Bitmaps" class="headerlink" title="8. Online Cardinality Estimation by Self-morphing Bitmaps"></a>8. Online Cardinality Estimation by Self-morphing Bitmaps</h3><p>The main scenario is estimating cardinality, Using self-morphing bitmaps like BloomFilter.</p>
+<p>Using math theory to estimate the cardinality.</p>
+<ul>
+<li>large sampling -&gt; small data</li>
+<li>small sampling -&gt; large data</li>
+</ul>
+<h3 id="9-Extreme-Bitmapping-Efficiently-Sorting-Data-for-Cloud-Compression"><a href="#9-Extreme-Bitmapping-Efficiently-Sorting-Data-for-Cloud-Compression" class="headerlink" title="9. Extreme Bitmapping: Efficiently Sorting Data for Cloud Compression"></a>9. Extreme Bitmapping: Efficiently Sorting Data for Cloud Compression</h3><p>Algorithm: how a sorted sequence can be restored to its original, unsorted sequence</p>
+<p>Two ways to reduce storage costs:</p>
+<ul>
+<li>universal compressor: single file</li>
+<li>deduplication: multiple files -&gt; bitmap compression, but could be really large</li>
+</ul>
+<p>Generalized deduplication -&gt; deduplication on similar chunks</p>
+<ul>
+<li>Hamming distance</li>
+<li>Damerau-Levenshtein edit distance</li>
+</ul>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+      <tags>
+        <tag>bitmap index</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Overview of Compression Algorithms</title>
+    <url>/compression-algorithm-overview2-test/</url>
+    <content><![CDATA[<h1 id="1-Overview-of-Data-Compression-Techniques"><a href="#1-Overview-of-Data-Compression-Techniques" class="headerlink" title="1. Overview of Data Compression Techniques"></a>1. Overview of Data Compression Techniques</h1><h2 id="1-1-Frame-of-Reference-FOR-Compression"><a href="#1-1-Frame-of-Reference-FOR-Compression" class="headerlink" title="1.1 Frame of Reference (FOR) Compression"></a>1.1 Frame of Reference (FOR) Compression</h2><h3 id="1-1-1-Core-Concepts"><a href="#1-1-1-Core-Concepts" class="headerlink" title="1.1.1 Core Concepts"></a>1.1.1 Core Concepts</h3><ul>
+<li><strong>Data Transformation</strong>: Reduce storage space by subtracting a reference value from each number. Typically, the minimum value in the dataset serves as the reference.</li>
+<li><strong>Bit Optimization</strong>: Store only the transformed values, utilizing just the number of bits needed for the largest transformed value.</li>
+</ul>
+<h3 id="1-1-2-Storage-Mechanism"><a href="#1-1-2-Storage-Mechanism" class="headerlink" title="1.1.2 Storage Mechanism"></a>1.1.2 Storage Mechanism</h3><ul>
+<li><strong>Box Division</strong>: Sort the data into distinct storage boxes according to their group.</li>
+<li><strong>Bit Requirements</strong>: To store these boxes, 56 bits are needed (8 bits base + 48 bits for six additional 8-bit blocks).</li>
+</ul>
+<h2 id="1-2-Roaring-Bitmap-Compression"><a href="#1-2-Roaring-Bitmap-Compression" class="headerlink" title="1.2 Roaring Bitmap Compression"></a>1.2 Roaring Bitmap Compression</h2><h3 id="1-2-1-Core-Concepts"><a href="#1-2-1-Core-Concepts" class="headerlink" title="1.2.1 Core Concepts"></a>1.2.1 Core Concepts</h3><ul>
+<li><strong>Division Strategy</strong>: Divide each integer by 16 to create a pair. The first element of the pair undergoes further division.</li>
+</ul>
+<h3 id="1-2-2-Storage-Mechanisms"><a href="#1-2-2-Storage-Mechanisms" class="headerlink" title="1.2.2 Storage Mechanisms"></a>1.2.2 Storage Mechanisms</h3><ul>
+<li><strong>Array Container</strong>: Employs an array structure for data storage.</li>
+<li><strong>Bitmap Container</strong>:<ul>
+<li>Occupies a stable 8KB space.</li>
+<li>Retains the numerical values but not necessarily their original sequence.</li>
+</ul>
+</li>
+</ul>
+<h2 id="1-3-Delta-Encoding"><a href="#1-3-Delta-Encoding" class="headerlink" title="1.3 Delta Encoding"></a>1.3 Delta Encoding</h2><h3 id="1-3-1-Core-Concepts"><a href="#1-3-1-Core-Concepts" class="headerlink" title="1.3.1 Core Concepts"></a>1.3.1 Core Concepts</h3><ul>
+<li><strong>Delta Calculation</strong>: Suitable for storing differences between timestamps. The delta can be calculated as either (T(n) - T(n-1)) or (T(n) - T(0)).</li>
+<li><strong>Delta of Delta</strong>: Ideal for closely-spaced time-series data.</li>
+</ul>
+<h3 id="1-3-2-Decoding-Method"><a href="#1-3-2-Decoding-Method" class="headerlink" title="1.3.2 Decoding Method"></a>1.3.2 Decoding Method</h3><ul>
+<li>Always begin decoding from the start of the data sequence.</li>
+</ul>
+<h2 id="1-4-Dictionary-Compression"><a href="#1-4-Dictionary-Compression" class="headerlink" title="1.4 Dictionary Compression"></a>1.4 Dictionary Compression</h2><h3 id="1-4-1-Core-Concepts"><a href="#1-4-1-Core-Concepts" class="headerlink" title="1.4.1 Core Concepts"></a>1.4.1 Core Concepts</h3><ul>
+<li><strong>Dictionary Mapping</strong>: Transform original data into shorter codes via a pre-defined dictionary.</li>
+</ul>
+<h4 id="1-4-1-1-Types-of-Dictionary-Compression"><a href="#1-4-1-1-Types-of-Dictionary-Compression" class="headerlink" title="1.4.1.1 Types of Dictionary Compression"></a>1.4.1.1 Types of Dictionary Compression</h4><ul>
+<li><strong>Static Dictionary Compression</strong>: The dictionary remains fixed.</li>
+<li><strong>Dynamic Dictionary Compression</strong>: The dictionary evolves based on the incoming data, such as in LZ77 and LZ78 algorithms.</li>
+</ul>
+<hr>
+<h1 id="2-Advanced-Compression-Algorithms"><a href="#2-Advanced-Compression-Algorithms" class="headerlink" title="2. Advanced Compression Algorithms"></a>2. Advanced Compression Algorithms</h1><h2 id="2-1-Overview"><a href="#2-1-Overview" class="headerlink" title="2.1 Overview"></a>2.1 Overview</h2><h3 id="2-1-1-Exploiting-Column-Correlations"><a href="#2-1-1-Exploiting-Column-Correlations" class="headerlink" title="2.1.1 Exploiting Column Correlations"></a>2.1.1 Exploiting Column Correlations</h3><ul>
+<li><strong>gzip (LZ77 + Huffman)</strong>: Focuses on a single data stream and is not designed to leverage or identify correlations between columns (or features).</li>
+<li><strong>zstd (LZ77 + Entropy Coding)</strong>: Also mainly compresses single data streams. It lacks a direct mechanism for exploiting correlations between columns.</li>
+</ul>
+<h3 id="2-1-2-Utilizing-Data-Samples"><a href="#2-1-2-Utilizing-Data-Samples" class="headerlink" title="2.1.2 Utilizing Data Samples"></a>2.1.2 Utilizing Data Samples</h3><ul>
+<li><strong>gzip</strong>: Does not use pre-existing data samples to improve the compression ratio. As a stream-based compression algorithm, it treats each data block as independent, not benefiting from external samples.</li>
+<li><strong>zstd</strong>: Supports dictionary-based compression, which can be considered a form of using “data samples.” The dictionary is generated from a set of sample data and can be used to compress and decompress similar data blocks, thereby improving compression performance. This is particularly effective for small files or data with repetitive patterns.</li>
+</ul>
+<h3 id="2-1-3-Conclusion"><a href="#2-1-3-Conclusion" class="headerlink" title="2.1.3 Conclusion"></a>2.1.3 Conclusion</h3><ul>
+<li>Primarily designed for one-dimensional data streams.</li>
+<li>While gzip does not use data samples, zstd indirectly uses sample data through dictionary compression.</li>
+</ul>
+<h2 id="2-2-gzip"><a href="#2-2-gzip" class="headerlink" title="2.2 gzip"></a>2.2 gzip</h2><p>gzip operates as an implementation of the Deflate Algorithm.</p>
+<h3 id="2-2-1-Overview"><a href="#2-2-1-Overview" class="headerlink" title="2.2.1 Overview"></a>2.2.1 Overview</h3><p>The symbiotic integration between LZ77 and Huffman coding yields superior compression efficacy in comparison to employing LZW in isolation.</p>
+<h3 id="2-2-2-LZ77-gt-Byte-Level-Compression"><a href="#2-2-2-LZ77-gt-Byte-Level-Compression" class="headerlink" title="2.2.2 LZ77 -&gt; Byte-Level Compression"></a>2.2.2 LZ77 -&gt; Byte-Level Compression</h3><p>LZ77 utilizes a sliding-window algorithm, scanning the data string from its inception with a window of fixed length trailing it. Upon identifying the longest matching substring between the scanning point and the window, a distance-length tag substitutes the substring. A flag byte precedes this tag to expedite the decompression process.</p>
+<h4 id="Preconditions"><a href="#Preconditions" class="headerlink" title="Preconditions"></a>Preconditions</h4><ul>
+<li>A minimum sequence of three contiguous characters is requisite for matching.</li>
+</ul>
+<h4 id="Procedure-within-Deflate-Algorithm"><a href="#Procedure-within-Deflate-Algorithm" class="headerlink" title="Procedure within Deflate Algorithm"></a>Procedure within Deflate Algorithm</h4><ol>
+<li><p><strong>Hashtable Construction with Chaining</strong></p>
+<ol>
+<li><p><code>ins_h</code>: Calculated hash value</p>
+</li>
+<li><p><code>head[ins_h]</code>: Records the string’s occurrence location, specifically the nth byte in the window.</p>
+</li>
+<li><p>For duplicate occurrences, a linked relationship is created via the <code>prev</code> array:</p>
+ <figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">prev[strstart] = head[ins_h];</span><br><span class="line">head[ins_h] = strstart;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>prev[x]: Serves both as the location of the matching string and as an index to locate the previous match.</li>
+<li>Ambiguity Mitigation in Window String Matching<ol>
+<li>head[x], prev[x], 0: Denote nullity.</li>
+<li>window 0 is not eligible for matching.</li>
+</ol>
+</li>
+<li>Array Boundary Precautions: <code>prev[strstart &amp; WMASK]·</code></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p><strong>Hashtable Search with First 3-Character Segment</strong></p>
+<ul>
+<li>Identical <code>ins_h</code> denotes matching and consequently reveals the distance.</li>
+<li>Matching attempts are divided into:<ol>
+<li><code>lazy_match</code>: Employs varied strings to find the longest match</li>
+<li><code>longest_match</code>: Obtains the longest match for a specific string</li>
+<li>Process Flow<ol>
+<li>Initially, <code>longest_match</code> provides the current match position and length -&gt; <code>(prev_length, prev_match)</code>.</li>
+<li>After shifting one character, a second match is attempted -&gt; if <code>prev_length</code> is greater, it is selected.</li>
+<li>If no greater match is found, substitution takes place, but all unprocessed strings are simultaneously inserted into the dictionary.</li>
+</ol>
+</li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p><strong>Constraints and Limitations</strong></p>
+<ul>
+<li><code>max_chain_length</code>: Limit on the maximum number of chain nodes to prevent indefinite looping.</li>
+<li><code>MAX_MATCH 258</code>: Maximum match length constraint</li>
+<li><code>MAX_DIST</code>: Maximum match distance constraint</li>
+</ul>
+</li>
+<li><p><strong>Data Structures</strong></p>
+<ol>
+<li>unsigned  short   d_buf[32768]; -&gt; distance</li>
+<li>unsigned  char    l_buf[32768]; -&gt; literal &amp; length 32768</li>
+<li>unsigned  char   flag_buf[32768&#x2F;8]; -&gt; 8bits * (32768&#x2F;8) -&gt; 32768 bits</li>
+<li>unsigned  last_lit, last_dist; -&gt; index</li>
+</ol>
+</li>
+<li><p><strong>Hash Function Update Mechanism</strong></p>
+ <figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> UPDATE_HASH(h,c) (h = (((h) &lt;&lt; H_SHIFT) ^ (c)) &amp; HASH_MASK)</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>The existing hash value can be reused and updated with the new character.</li>
+</ul>
+</li>
+</ol>
+<h3 id="2-2-3-Huffman-Coding-gt-Compress-in-the-bits-level"><a href="#2-2-3-Huffman-Coding-gt-Compress-in-the-bits-level" class="headerlink" title="2.2.3 Huffman Coding -&gt; Compress in the bits level"></a>2.2.3 Huffman Coding -&gt; Compress in the bits level</h3><p>Huffman Coding is a Lossless Compression Technique.</p>
+<ul>
+<li><strong>Dynamic</strong>: Requires additional space to store the Huffman Tree.</li>
+<li><strong>Static</strong>: Utilizes a default Huffman Tree, thereby eliminating the need for extra storage space.<ul>
+<li>Block header, directly combined bits stream</li>
+</ul>
+</li>
+</ul>
+<h4 id="2-2-3-1-Specialized-Architectural-Designs-in-Deflate"><a href="#2-2-3-1-Specialized-Architectural-Designs-in-Deflate" class="headerlink" title="2.2.3.1 Specialized Architectural Designs in Deflate"></a>2.2.3.1 Specialized Architectural Designs in Deflate</h4><ul>
+<li>In scenarios involving small-sized data, the Huffman tree is reconstructed for efficient encoding.</li>
+<li><strong>Characteristics of Levels</strong>:<ul>
+<li>Nodes at the same level are contiguous, with the right node being one increment larger than the left.</li>
+</ul>
+</li>
+<li><strong>Inter-level Relationships</strong>:<ul>
+<li>The leftmost leaf node at level (n+1) is equal to the rightmost leaf node at level (n) incremented by 1.</li>
+<li>A node (n) has the following child nodes:<ul>
+<li>Left child: (2n)</li>
+<li>Right child: (2n+1)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>This approach facilitates block-wise output and further Huffman compression. Each block maintains its unique structural attributes. The Huffman tree utilized for compression is non-balanced, with the right side consistently deeper than the left. A Canonical Huffman Tree is not imperative; the leaf node depth alone suffices to construct the tree. In practice, only codeword lengths are transmitted.</p>
+<h4 id="2-2-3-2-Implementation-Specifics-in-Deflate"><a href="#2-2-3-2-Implementation-Specifics-in-Deflate" class="headerlink" title="2.2.3.2 Implementation Specifics in Deflate"></a>2.2.3.2 Implementation Specifics in Deflate</h4><ul>
+<li><strong>Data Components</strong>:<ul>
+<li>Literals, lengths, and distances are already ascertained.</li>
+</ul>
+</li>
+<li><strong>Distance Tree</strong>:<ul>
+<li><strong>Data Structure</strong>:<ul>
+<li>Codes in the range [0,29] are uniquely Huffman-encoded.</li>
+<li>Extra bits demarcate data ranges.</li>
+</ul>
+</li>
+<li><strong>Notable Aspects</strong>:</li>
+<li>Building the huffmann tree, don’t need to build Canonical Huffman Tree, because the depth&#x2F;code length is same.</li>
+<li>Decompressing, still don’t need to build the Canonical Huffman Tree, bacause can directly deduct it.</li>
+</ul>
+</li>
+<li><strong>Literal&#x2F;Length Tree</strong>:<ul>
+<li><strong>Range Specifics</strong>:<ul>
+<li>Both literals and lengths comprise 256 distinct values.</li>
+<li>Literals are mapped in the range [0,256].</li>
+<li>Lengths are confined to interval codes [257, 285].</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-2-4-Run-Length-Encoding-RLE-for-Bit-Stream-Optimization"><a href="#2-2-4-Run-Length-Encoding-RLE-for-Bit-Stream-Optimization" class="headerlink" title="2.2.4 Run-Length Encoding (RLE) for Bit Stream Optimization"></a>2.2.4 Run-Length Encoding (RLE) for Bit Stream Optimization</h3><ul>
+<li><strong>Coding Schema</strong>:<ul>
+<li>‘16’: Denotes ‘*’, followed by a 2-bit value representing repetition.<ul>
+<li>‘00’ implies a repetition 3 times, totaling 4 instances.</li>
+</ul>
+</li>
+<li>‘17’: Primarily targets ‘0’s and is followed by a 3-bit value.<ul>
+<li>[000,111] signifies ‘0’ appearing continuously between 3 and 10 times.</li>
+</ul>
+</li>
+<li>‘18’: Similar to ‘17’, but followed by a 7-bit value.<ul>
+<li>[0000000, 1111111] indicates ‘0’ appearing continuously between 11 and 138 times.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-2-4-Additional-Insights"><a href="#2-2-4-Additional-Insights" class="headerlink" title="2.2.4 Additional Insights"></a>2.2.4 Additional Insights</h3><h4 id="2-2-4-1-Comparative-Analysis-of-LZ77-amp-LZ78"><a href="#2-2-4-1-Comparative-Analysis-of-LZ77-amp-LZ78" class="headerlink" title="2.2.4.1 Comparative Analysis of LZ77 &amp; LZ78"></a>2.2.4.1 Comparative Analysis of LZ77 &amp; LZ78</h4><ul>
+<li><p><strong>Storage Mechanism</strong>:</p>
+<ul>
+<li>LZ77 employs a sliding-window technique, whereas LZ78 utilizes a dynamic dictionary.</li>
+</ul>
+</li>
+<li><p><strong>Compression Notation</strong>:</p>
+<ul>
+<li>LZ77 adopts (offset, length) pairs, while LZ78 uses (dictionary index, character) pairs.</li>
+</ul>
+</li>
+<li><p><strong>Real-time Efficacy</strong>:</p>
+<ul>
+<li>LZ77 is optimized for real-time stream compression, whereas LZ78, due to the necessity for dynamic dictionary maintenance, is more aligned with non-real-time applications.</li>
+</ul>
+</li>
+</ul>
+<h5 id="2-2-4-1-1-LZ78-Specifics"><a href="#2-2-4-1-1-LZ78-Specifics" class="headerlink" title="2.2.4.1.1 LZ78 Specifics"></a>2.2.4.1.1 LZ78 Specifics</h5><ul>
+<li><p><strong>Dictionary</strong>: Unlike LZ77’s sliding window, LZ78 uses a dynamically generated dictionary to save previously encountered strings. This dictionary is continually updated during the compression process.</p>
+</li>
+<li><p><strong>Compression Notation</strong>: When a new string (or string sequence) is found, the algorithm looks for the longest matching prefix in the dictionary and outputs the dictionary index associated with that prefix, followed by the next character of the string. For entirely new strings, a special dictionary index (usually zero) and the string itself are typically output.</p>
+</li>
+<li><p><strong>Non-Real-Time</strong>: Because LZ78 needs to maintain a growing dictionary, it is generally not suitable for real-time stream compression but is more appropriate for file compression.</p>
+</li>
+</ul>
+<h5 id="2-2-4-1-2-Variants-of-LZ77"><a href="#2-2-4-1-2-Variants-of-LZ77" class="headerlink" title="2.2.4.1.2 Variants of LZ77"></a>2.2.4.1.2 Variants of LZ77</h5><ul>
+<li>A specialized variant uses (a, b) notation, eliminate storing the third character.</li>
+</ul>
+<h4 id="2-2-4-2-Fine-Grained-Elements-in-Deflate-Algorithm"><a href="#2-2-4-2-Fine-Grained-Elements-in-Deflate-Algorithm" class="headerlink" title="2.2.4.2 Fine-Grained Elements in Deflate Algorithm"></a>2.2.4.2 Fine-Grained Elements in Deflate Algorithm</h4><ul>
+<li><p><strong>Block Headers</strong>:</p>
+<ul>
+<li>Employed as bit streams.</li>
+</ul>
+</li>
+<li><p><strong>Data Storage</strong>:</p>
+<ul>
+<li>Utilized as byte streams.</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-2-5-Reference"><a href="#2-2-5-Reference" class="headerlink" title="2.2.5 Reference"></a>2.2.5 Reference</h3><ul>
+<li><a href="https://www.zlib.net/feldspar.html">🌟 An Explanation of the Deflate Algorithm</a></li>
+<li><a href="https://www.gnu.org/software/gzip/manual/gzip.pdf">Gzip Document</a>: Primarily instructional content about the tool.</li>
+<li><a href="https://datatracker.ietf.org/doc/html/rfc1952">RFC1952</a></li>
+<li><a href="https://cs.stanford.edu/people/eroberts/courses/soco/projects/2000-01/data-compression/lossless/lz77/algorithm.htm">Stanford LZ77</a></li>
+<li><a href="https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-wusp/fb98aa28-5cd7-407f-8869-a6cef1ff1ccb">Microsoft LZ77</a></li>
+</ul>
+<p><img data-src="/a.png" alt="Performance Comparison"></p>
+<h2 id="2-3-Zstd-Facebook-2016"><a href="#2-3-Zstd-Facebook-2016" class="headerlink" title="2.3 Zstd (Facebook, 2016)"></a>2.3 Zstd (Facebook, 2016)</h2><p>Efficiency: Switching from gzip to Zstd resulted in a 30% reduction in storage on Amazon S3.</p>
+<p>Evaluation Standards:</p>
+<ul>
+<li>Compression rate</li>
+<li>Compression speed</li>
+<li>Decompression speed</li>
+</ul>
+<h3 id="2-3-1-Overview"><a href="#2-3-1-Overview" class="headerlink" title="2.3.1 Overview"></a>2.3.1 Overview</h3><h4 id="2-3-1-1-Features"><a href="#2-3-1-1-Features" class="headerlink" title="2.3.1.1 Features"></a>2.3.1.1 Features</h4><ol>
+<li><p>高压缩比与速度：Zstd 旨在提供接近于最先进压缩算法的压缩比，同时还具有高度的压缩和解压速度。</p>
+</li>
+<li><p>灵活性与可调性：Zstd 提供了多级压缩设置，允许用户在压缩比和速度之间做出权衡。</p>
+</li>
+<li><p>强大的字典支持：对于重复数据或小文件，Zstd 的字典压缩功能非常有用。训练 Zstandard 是通过提供一些样本（每个样本一个文件）来实现的，训练的结果存储在称为“字典”的文件中，该文件必须在压缩和解压缩之前加载。使用此字典，可以在小数据上实现的压缩率大大提高。</p>
+</li>
+<li><p>性能设计</p>
+<ol>
+<li>内存：Zstandard 可以使用从几百 KB 到数 TB 不等的内存。</li>
+<li>并行执行：Zstandard 通过减少数据依赖性来利用现代 CPU 的并行执行能力。</li>
+<li>无分支设计：避免 CPU 流水线清空，提高执行速度。</li>
+</ol>
+</li>
+</ol>
+<h3 id="2-3-1-2-Core-Components"><a href="#2-3-1-2-Core-Components" class="headerlink" title="2.3.1.2 Core Components"></a>2.3.1.2 Core Components</h3><ol>
+<li>Finite State Entropy 来优化算法压缩：压缩效率高，解压速度快</li>
+<li></li>
+</ol>
+<h3 id="2-3-x-Reference"><a href="#2-3-x-Reference" class="headerlink" title="2.3.x Reference"></a>2.3.x Reference</h3><ul>
+<li><a href="https://github.com/facebook/zstd">Github Zstd</a></li>
+<li>[Facebook ]</li>
+</ul>
+<h2 id="2-4-Snappy"><a href="#2-4-Snappy" class="headerlink" title="2.4 Snappy"></a>2.4 Snappy</h2>]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+      <tags>
+        <tag>compression</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Parquet Learning</title>
+    <url>/parquet-learning/</url>
+    <content><![CDATA[<h1 id="Parquet"><a href="#Parquet" class="headerlink" title="Parquet"></a>Parquet</h1><h2 id="Basic-information-From-Paper-Reading"><a href="#Basic-information-From-Paper-Reading" class="headerlink" title="Basic information From Paper Reading"></a>Basic information From Paper Reading</h2><h3 id="An-Empirical-Evaluation-of-Columnar-Storage-Formats"><a href="#An-Empirical-Evaluation-of-Columnar-Storage-Formats" class="headerlink" title="An Empirical Evaluation of Columnar Storage Formats"></a><a href="https://arxiv.org/pdf/2304.05028.pdf">An Empirical Evaluation of Columnar Storage Formats</a></h3><ol>
+<li>Parquet Dictionary Encoding first -&gt; hybrid RLE and Bitpacking<ol>
+<li>So we can use correlation to compress columns (After Dictionary will like bitmap)</li>
+<li>Parquet not break “serial correlation” -&gt; Bitpacking and RLE as default</li>
+</ol>
+</li>
+<li>Distribution<ol>
+<li>more than 80% -&gt; integer columns</li>
+<li>60% string columns have NDV ratio smaller than 0.01</li>
+</ol>
+</li>
+</ol>
+]]></content>
+      <categories>
+        <category>Database</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>MIT 6.824 Lab 1</title>
+    <url>/mit-6.824-lab1/</url>
+    <content><![CDATA[<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p><code>test-mr.sh</code> 作为测试的主入口</p>
+<p>MapReduce 程序</p>
+<ul>
+<li>mrcoordinator.go 作为调度者程序</li>
+<li>mrworker.go 作为工作程序，实现 <code>map</code> <code>reduce</code> 的功能</li>
+</ul>
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><h3 id="1-基础架构"><a href="#1-基础架构" class="headerlink" title="1. 基础架构"></a>1. 基础架构</h3><p>核心思路就是将 <code>mrsequential.go</code> 的程序拆分到 <code>worker</code> 中的 <code>map</code> 和 <code>reduce</code> 功能。</p>
+<p>worker 通过发送 rpc 请求，向 coordinator 申请任务，并且根据不同的任务种类执行不同的函数。</p>
+<h3 id="2-Race-处理"><a href="#2-Race-处理" class="headerlink" title="2. Race 处理"></a>2. Race 处理</h3><p>由于写过 C++ 的数据库，对于这部分加锁的实现已经很娴熟了。并且 Golang 语言中的 <code>defer unlock()</code> 机制让整体写起来也很顺滑。</p>
+<h3 id="3-特例处理"><a href="#3-特例处理" class="headerlink" title="3. 特例处理"></a>3. 特例处理</h3><ol>
+<li>Early Exit Test - 检测所有任务都完成时才返回</li>
+<li>Crash Test- worker 退出导致任务崩溃</li>
+</ol>
+<p>这两个测试需要我们对于任务的执行进行监控和管理：</p>
+<ul>
+<li>status: 监控任务的执行情况</li>
+<li>timestamp: 检测任务是否会超时</li>
+</ul>
+<h2 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h2><ol>
+<li>使用了 <code>go plugin</code>很有趣：<ol>
+<li>在 <code>Goland</code> 里面 debug 的时候，需要配置首先编译对应的 <code>.so</code> 文件，然后再执行。</li>
+</ol>
+</li>
+<li>rpc<ol>
+<li>代码特点是使用 <code>rpc</code> 进行通信。可以很简单自定义传输的结构，具有很强大的功能。</li>
+<li>这有很多 Golang 语法上面的特性需要我们注意，结构体和内部变量都需要首字母大写</li>
+</ol>
+</li>
+<li>interface<ol>
+<li>Golang 语言中很重要的特性。不需要额外的配置，就可以映射到不同的结构体中。</li>
+<li>作为 rpc 传输 struct 的一部分，因为需要 struct 的结构才能传输。</li>
+<li>解码 <code>actualReply := reply.Payload.(ReplyMapperFromCoordinator)</code></li>
+</ol>
+</li>
+</ol>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>由于整体架构和实现是完全自己设计并且通过任务，还是蛮开心的。</p>
+<p>继续努力💪</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">...</span><br><span class="line">*** Starting early <span class="built_in">exit</span> <span class="built_in">test</span>.</span><br><span class="line">--- early <span class="built_in">exit</span> <span class="built_in">test</span>: PASS</span><br><span class="line">*** Starting crash <span class="built_in">test</span>.</span><br><span class="line">--- crash <span class="built_in">test</span>: PASS</span><br><span class="line">*** PASSED ALL TESTS</span><br></pre></td></tr></table></figure>
+]]></content>
+      <categories>
+        <category>Distributed System</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Acn Router</title>
+    <url>/acn-router-project/</url>
+    <content><![CDATA[<h1 id="Problem-1"><a href="#Problem-1" class="headerlink" title="Problem 1"></a>Problem 1</h1><h2 id="Step1-client-配置-sh"><a href="#Step1-client-配置-sh" class="headerlink" title="Step1 - client 配置 sh"></a>Step1 - client 配置 sh</h2><p>使用这个指令来进行绑定。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">ip addr add 10.0.0.2/24 dev eth1</span><br><span class="line">ip <span class="built_in">link</span> <span class="built_in">set</span> dev eth1 up</span><br><span class="line">ip route add 192.169.0.0/24 via 10.0.0.1 dev eth1</span><br><span class="line">ip route add 172.16.0.0/24 via 10.0.0.1 dev eth1</span><br></pre></td></tr></table></figure>
+
+<p>注意：目前的 <code>ip</code> 配置后，是无法直接通过 <code>ip 地址</code> 进行通信的，需要 <code>router</code> 的 <code>dpdk</code> 相关程序进行转发。因为无法联系上对应的机器。</p>
+<p>Attention: 很神奇！在 <code>router</code> 机器上配置了 <code>ip addr eth1/2/3</code> 之后，启动 <code>./fwd -s 0 -d 1</code> 居然会报错。这样是需要理解的。</p>
+<h3 id="Linux-ip-command"><a href="#Linux-ip-command" class="headerlink" title="Linux ip command"></a>Linux ip command</h3><p><code>Linux ip command</code> 是 Linux 的网络工具和网络管理员。<code>ifconfig</code> 是更老的版本，所以目前不用了。</p>
+<p><a href="https://segmentfault.com/a/1190000019363010">ip 路由讲解</a> <a href="https://www.cyberciti.biz/faq/linux-ip-command-examples-usage-syntax/">命令详解</a></p>
+<p>ip 地址和 mask 关系</p>
+<ul>
+<li><p>子网掩码是用来判断任意两台计算机的 IP 地址是否属于同一子网络的根据。</p>
+</li>
+<li><p>两台计算机各自的 IP 地址与子网掩码进行 AND 运算后，如果得出的结果是相同的，则说明这两台计算机是处于同一个子网络上的，可以进行直接的通讯。</p>
+</li>
+<li><p>子网掩码以 32 位的 2 进制存在，&#x2F;24 表示前 24 位是网络号，后 8 位是主机号。网络号相同的则表示处于同一网段中，且子网掩码不能单独存在，它必须结合 IP 地址一起使用。</p>
+</li>
+</ul>
+<p>其中 <code>eth</code> 是网卡。</p>
+<h3 id="Ping"><a href="#Ping" class="headerlink" title="Ping"></a>Ping</h3><p>Ping 是用于测试两个网络主机之间的可达性。基于 ICMP 协议。</p>
+<blockquote>
+<p>举一个例子来描述「ping」命令的工作过程：</p>
+</blockquote>
+<blockquote>
+<ol>
+<li>假设有两个主机，主机 A（192.168.0.1）和主机 B（192.168.0.2），现在我们要监测主机 A 和主机 B 之间网络是否可达，那么我们在主机 A 上输入命令：ping 192.168.0.2</li>
+<li>此时，ping 命令会在主机 A 上构建一个 ICMP 的请求数据包，然后 ICMP 协议会将这个数据包以及目标 IP（192.168.0.2）等信息一同交给 IP 层协议。</li>
+<li>IP 层协议得到这些信息后，将源地址（本机 IP）、目标地址（目标 IP 192.168.0.2）、再加上控制信息，构建成一个 IP 数据包。</li>
+<li>IP 数据包构建完成后，还需要加上 MAC 地址，因此，还需要通过 ARP 映射表找出目标 IP 所对应的 MAC 地址。当拿到了目标主机的 MAC 地址和本机 MAC 后，一并交给数据链路层，组装成一个数据帧，依据以太网的介质访问规则，将它们传送出出去。</li>
+<li>当主机 B 收到这个数据帧之后，会首先检查它的目标 MAC 地址是不是本机，如果是就接收下来处理，接收之后会检查这个数据帧，将数据帧中的 IP 数据包取出来，交给本机的 IP 层协议，然后 IP 层协议检查完之后，再将 ICMP 数据包取出来交给 ICMP 协议处理，当这一步也处理完成之后，就会构建一个 ICMP 应答数据包，回发给主机 A。</li>
+<li>在一定的时间内，如果主机 A 收到了应答包，则说明它与主机 B 之间网络可达，如果没有收到，则说明网络不可达。除了监测是否可达以外，还可以利用应答时间和发起时间之间的差值，计算出数据包的延迟耗时。</li>
+</ol>
+</blockquote>
+<p>正常的 ping 操作主要是两个特定的 <code>ICMP</code> 消息，<code>ECHO_REQUEST</code> 和 <code>ECHO_REPLY</code>。</p>
+<p>我们使用的 <code>ping -I eth1 192.168.0.2</code> 的 <code>-I</code> 是表明 <code>-I &lt;interface&gt; either interface name or address</code></p>
+<h3 id="ARP"><a href="#ARP" class="headerlink" title="ARP"></a>ARP</h3><p>ARP（Address Resolution Protocol，地址解析协议）是用来将 IP 地址解析为 MAC 地址的协议。主机或三层网络设备上会维护一张 ARP 表，用于存储 IP 地址和 MAC 地址的映射关系。</p>
+<p>为什么需要 ARP？</p>
+<ul>
+<li>因为在局域网中发送数据，只知道对方的网络层地址 IP 地址是不够的。IP 地址必须封装成帧才能通过物理网络发送，因此发送方还需要知道接收方的物理地址。</li>
+<li>所以需要一个通过 IP 地址获取物理地址的协议，才能完成从 IP 地址到 MAC 地址 的转换。</li>
+</ul>
+<h3 id="执行-DPDK-之前"><a href="#执行-DPDK-之前" class="headerlink" title="执行 DPDK 之前"></a>执行 DPDK 之前</h3><p>在 <code>client1 ping client2</code> 的时候， <code>client1</code> 的终端会不断提示。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">19:33:09.310664 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br><span class="line">19:33:10.334896 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p>解读 - 是 10.0.0.2 发送的请求报文，用于确定 10.0.0.1 的 MAC 地址，以便于可以在本地网络上进行通信。</p>
+<p>The message “ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28” is an ARP request message that is used to determine the MAC address of a device with the IP address 10.0.0.1. The message is being sent from the device with the IP address 10.0.0.2. The length field specifies the length of the message, which is 28 bytes in this case.</p>
+<p>When a device wants to communicate with another device on a local network, it needs to know the MAC address of the destination device. The device can send an ARP request message to the local network, asking for the MAC address of the destination device. If the destination device is on the same network, it will respond with its MAC address. The device can then use the MAC address to send the data directly to the destination device.</p>
+<p>In summary, the “ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28” message is used to request the MAC address of a device with the IP address 10.0.0.1, so that the device with the IP address 10.0.0.2 can communicate with it on a local network.</p>
+<p>目前的消息提示看起来和 client2 没有多少关系。</p>
+<h2 id="Step2-dpdk-的配置"><a href="#Step2-dpdk-的配置" class="headerlink" title="Step2 - dpdk 的配置"></a>Step2 - dpdk 的配置</h2><p><code>git clone dpdk-framework</code> 到 <code>/home</code> 路径，然后按照 <code>gitlab</code> 上面的指令进行编译。</p>
+<p>其中绑定的一步使用如下指令：<code>dpdk/usertools/dpdk-devbind.py --bind=uio_pci_generic eth1</code></p>
+<p>整合编译脚本</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">apt-get update</span><br><span class="line">apt-get install meson</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> dpdk</span><br><span class="line">meson build</span><br><span class="line"><span class="built_in">cd</span> build</span><br><span class="line">ninja</span><br><span class="line">ninja install</span><br><span class="line">ldconfig</span><br><span class="line"></span><br><span class="line">modprobe uio</span><br><span class="line">modprobe uio_pci_generic</span><br><span class="line"></span><br><span class="line"><span class="built_in">cd</span> ../..</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth1</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth2</span><br><span class="line">dpdk/usertools/dpdk-devbind.py --<span class="built_in">bind</span>=uio_pci_generic eth3</span><br><span class="line"></span><br><span class="line"><span class="built_in">mkdir</span> /mnt/huge</span><br><span class="line">mount -t hugetlbfs nodev /mnt/huge</span><br><span class="line"><span class="built_in">echo</span> 256 &gt; /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages</span><br><span class="line"></span><br><span class="line">cmake .</span><br><span class="line">make</span><br></pre></td></tr></table></figure>
+
+<p>运行示例程序</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">(git)-[main] # cd examples/</span><br><span class="line">(git)-[main] # ls</span><br><span class="line">dpdk-helloworld  dpdk-helloworld.p  helloworld</span><br><span class="line">(git)-[main] # ./dpdk-helloworld</span><br><span class="line">EAL: Detected 3 lcore(s)</span><br><span class="line">EAL: Detected 1 NUMA nodes</span><br><span class="line">EAL: Detected static linkage of DPDK</span><br><span class="line">EAL: Multi-process socket /var/run/dpdk/rte/mp_socket</span><br><span class="line">EAL: Selected IOVA mode &#x27;PA&#x27;</span><br><span class="line">EAL: No available hugepages reported in hugepages-1048576kB</span><br><span class="line">EAL: Probing VFIO support...</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:03:00.0 (socket 0)</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:04:00.0 (socket 0)</span><br><span class="line">EAL:   Invalid NUMA socket, default to 0</span><br><span class="line">EAL: Probe PCI driver: net_virtio (1af4:1041) device: 0000:05:00.0 (socket 0)</span><br><span class="line">EAL: No legacy callbacks, legacy socket not created</span><br><span class="line">hello from core 1</span><br><span class="line">hello from core 2</span><br><span class="line">hello from core 0</span><br></pre></td></tr></table></figure>
+
+<p>因为虚拟机每 24 小时就要重新设置，所以设计 <code>sh</code> 文件来帮助自动化配置。</p>
+<h3 id="DPDK"><a href="#DPDK" class="headerlink" title="DPDK"></a>DPDK</h3><p>DPDK 全称为 Date planedevelopment kit，是一个用来进行包数据处理加速的软件库。DPDK 的特性之一是能够在网络接口之间转发数据包，通常称为数据包转发或数据包交换。</p>
+<p>传统处理数据包的时候：1. 首先将数据从物理网卡拷贝到内核协议栈；2. 从内核空间拷贝到用户空间。</p>
+<p><img data-src="/acn-router-project/image1.png"></p>
+<p>DPDK 目标在于对于网路数据的高速处理，重要创新就是零拷贝技术，将网卡数据直接转移到用户态空间运行。</p>
+<p><img data-src="/acn-router-project/image2.png"></p>
+<h4 id="转发"><a href="#转发" class="headerlink" title="转发"></a>转发</h4><p>数据包转发是在一个网络接口上接收数据包，检查数据包的目的地址，然后根据目的地址将数据包从另一个接口发送出去的过程。这允许路由器和交换机等设备连接多个网络并在它们之间转发流量。</p>
+<h4 id="Hugepage"><a href="#Hugepage" class="headerlink" title="Hugepage"></a>Hugepage</h4><p>基础概念</p>
+<ol>
+<li>物理内存</li>
+<li>虚拟内存 - 使用 MMU 进行转换。</li>
+<li>页表 - 保存虚拟内存地址和物理内存地址的映射关系。MMU 从页表中找到虚拟内存地址所映射的物理内存地址，然后把物理内存地址交给 CPU。</li>
+<li>TLB - 高速缓存。TLB 缓存虚拟内存地址与其映射的物理内存地址。MMU 首先查询 TLB，如果找不到再回溯查找页表。</li>
+<li>Hugepages - 大于 4KB 的内存页作为内存映射单位的机制叫 HugePages。</li>
+</ol>
+<p>虚拟内存地址包含多种索引字段 + 偏移量部分。内存页变大，需要扩大对应的偏移量。这种情况下使用更少的索引即可。</p>
+<h4 id="DPDK-Library"><a href="#DPDK-Library" class="headerlink" title="DPDK Library"></a>DPDK Library</h4><ol>
+<li><p>rte_eal_mp_wait_lcore()<br> Wait for an event or a message on the current lcore (logical core).</p>
+<p> In DPDK, an lcore is a logical representation of a CPU core that can be used to run code in parallel. The <code>rte_eal_mp_wait_lcore()</code> function is typically used in the main loop of a DPDK application to wait for an event or a message to be received on the current lcore.</p>
+<p> It’s important to note that the <code>rte_eal_mp_wait_lcore()</code> function should only be used in the main loop of a DPDK application and not in a separate thread.</p>
+</li>
+<li><p>rte_eal_remote_launch()<br> The <code>rte_eal_remote_launch()</code> function is part of the Environment Abstraction Layer (EAL) of DPDK, which provides a common interface for accessing the underlying hardware and operating system resources. The EAL also manages the initialization and finalization of the DPDK environment, as well as the communication between different DPDK processes.</p>
+<p> The rte_eal_remote_launch function allows a DPDK application to be launched on a remote host and communicate with the local host through a shared memory region. This can be useful in scenarios where the DPDK application needs to be distributed across multiple hosts, or where the local host does not have the necessary hardware resources to run the application.</p>
+</li>
+<li><p>rte_eth_tx_burst()<br> The <code>rte_eth_tx_burst()</code> transmit a burst of packets to an Ethernet device.</p>
+<p> This function takes the following arguments:</p>
+<ol>
+<li>uint16_t port_id: The ID of the port to transmit the packets to.</li>
+<li>uint16_t queue_id: The ID of the transmit queue to use.</li>
+<li>struct rte_mbuf **tx_pkts: An array of pointers to the packets to be transmitted.</li>
+<li>uint16_t nb_pkts: The number of packets to transmit.</li>
+</ol>
+</li>
+</ol>
+<p>The function returns the number of packets that were successfully transmitted.</p>
+<h2 id="Step3-Forwarder"><a href="#Step3-Forwarder" class="headerlink" title="Step3 - Forwarder"></a>Step3 - Forwarder</h2><p>发送端的指令 - <code>ping -I eth1 192.168.0.2</code><br>接收端的指令 - <code>tcpdump -i eth1</code></p>
+<p>首先是单纯的 Forwarder：</p>
+<ul>
+<li>执行任务：client1 发送消息给 client2</li>
+<li>原本 Step2 的实现是 client2 的命令行没有提示，即没有收到消息。</li>
+<li>调用 <code>.fwd -s 0 -d 1</code> 之后，client2 命令行中收到对应的消息，意思是收到原本在 client1 中的信息。</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">19:47:58.670459 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br><span class="line">19:47:59.104091 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p>Code analyse:</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Main function of the thread performing the packet processing.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">int</span> <span class="title function_">run_thread</span><span class="params">(<span class="type">void</span>*arg)</span></span><br><span class="line">&#123;</span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config</span> =</span> (<span class="keyword">struct</span> thread_config*)arg;</span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">rte_mbuf</span> *<span class="title">bufs</span>[64];</span></span><br><span class="line"> <span class="keyword">while</span> (<span class="number">1</span>)</span><br><span class="line"> &#123;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*Receive a burst of packets*/</span></span><br><span class="line">  <span class="type">uint16_t</span> rx = rte_eth_rx_burst(config-&gt;src_interface, config-&gt;src_queue, bufs, <span class="number">64</span>);</span><br><span class="line">  <span class="keyword">if</span> (!rx)</span><br><span class="line">   usleep(<span class="number">100</span>);</span><br><span class="line">  <span class="keyword">for</span> (<span class="type">uint16_t</span> i = <span class="number">0</span>; i &lt; rx; ++i)</span><br><span class="line">   handle_packet(config, bufs[i]);</span><br><span class="line">  recv_pkts += rx;</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*statistics*/</span></span><br><span class="line">  <span class="keyword">if</span> (rte_get_tsc_cycles() - timestamp &gt; rte_get_timer_hz())</span><br><span class="line">  &#123;</span><br><span class="line">   timestamp = rte_get_tsc_cycles();</span><br><span class="line">   <span class="built_in">printf</span>(<span class="string">&quot;Received pkts: %i, sent pkts: %i\n&quot;</span>, recv_pkts, sent_pkts);</span><br><span class="line">  &#125;</span><br><span class="line"> &#125;</span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>This code is a simple DPDK-based packet forwarding application. It receives packets on a source interface, performs some dummy processing on the packets, and then forwards the packets to a destination interface.</p>
+<p>The main function of the program is run_thread(), which is executed in a separate thread for each lcore. The function performs the following steps:</p>
+<ol>
+<li>It receives a burst of packets from the source interface using rte_eth_rx_burst().</li>
+<li>It processes each packet by calling the handle_packet() function.</li>
+<li>It sends the processed packets to the destination interface using transmit_packet().</li>
+<li>It prints some statistics about the received and sent packets.</li>
+</ol>
+<p>The handle_packet() function performs some dummy processing on the packet by modifying the source MAC address of the packet. The transmit_packet() function simply sends the packet to the specified hardware queue of the destination interface using rte_eth_tx_burst().</p>
+<p>The main() function initializes DPDK and sets up the source and destination interfaces using the command-line arguments passed to the program. It then creates a separate thread for each lcore and launches the run_thread() function in each thread using rte_eal_remote_launch().</p>
+</blockquote>
+<p>在配置 <code>dpdk</code> 之后，运行单向的<code>fwd</code> 程序，<code>client1</code> 可以向 <code>client2</code> 发送请求。</p>
+<p>需要注意在每次重新激活环境后，都需要重新启动：</p>
+<ul>
+<li>router 使用 dpdk 文件夹下面的 router.sh</li>
+<li>client 使用 根目录的 clientx.sh</li>
+</ul>
+<h2 id="Step4-Bidirectional-Forwarder"><a href="#Step4-Bidirectional-Forwarder" class="headerlink" title="Step4 - Bidirectional Forwarder"></a>Step4 - Bidirectional Forwarder</h2><p>双向 Forwarder 的实现 使用多线程进行配置，需要注意：我们的程序是 C 语言，需要使用 <code>#include&lt;pthread&gt;</code> 来进行设置。</p>
+<p>核心代码</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">pthread_t</span> threads[<span class="number">2</span>];</span><br><span class="line"></span><br><span class="line"><span class="comment">// Start the first thread</span></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;Forwarding from interface %i to interface %i\n&quot;</span>, src_interface, dst_interface);</span><br><span class="line">pthread_create(&amp;threads[<span class="number">0</span>], <span class="literal">NULL</span>, start_thread, <span class="literal">NULL</span>);</span><br><span class="line">pthread_join(threads[<span class="number">0</span>], <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line"><span class="comment">// switch the port interface</span></span><br><span class="line"><span class="type">int</span> swp = src_interface;</span><br><span class="line">src_interface = dst_interface;</span><br><span class="line">dst_interface = swp;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Start the seconde thread</span></span><br><span class="line"><span class="built_in">printf</span>(<span class="string">&quot;Forwarding from interface %i to interface %i\n&quot;</span>, src_interface, dst_interface);</span><br><span class="line">pthread_create(&amp;threads[<span class="number">1</span>], <span class="literal">NULL</span>, start_thread, <span class="literal">NULL</span>);</span><br><span class="line">pthread_join(threads[<span class="number">1</span>], <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">rte_eal_mp_wait_lcore();</span><br></pre></td></tr></table></figure>
+
+<p>实现后，在两个 client 都进行 ping 的情况下，应该都会收到对应的消息。</p>
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">19:26:18.399248 ARP, Request who-has 192.168.0.1 tell 192.168.0.2, length 28</span><br><span class="line">19:26:18.816249 ARP, Request who-has 10.0.0.1 tell 10.0.0.2, length 28</span><br></pre></td></tr></table></figure>
+
+<p><strong>使用 pthread</strong></p>
+<p>由于是 c 语言，所以使用 <code>#include&lt;pthread.h&gt;</code>。</p>
+<p>然后对应创建两个线程 s，对于函数 <code>run_thread()</code> 和 <code>handle_packet()</code> 也进行对应返回类型的修改。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Initialize a thread handling the packet processing.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">start_thread</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config1</span> =</span> (<span class="keyword">struct</span> thread_config*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> thread_config));</span><br><span class="line"> config1-&gt;src_interface = src_interface;</span><br><span class="line"> config1-&gt;src_queue = <span class="number">0</span>;</span><br><span class="line"> config1-&gt;dst_interface = dst_interface;</span><br><span class="line"> config1-&gt;dst_queue = <span class="number">0</span>;</span><br><span class="line"> <span class="comment">// rte_eal_remote_launch(run_thread, config1, 1);</span></span><br><span class="line"> pthread_create(&amp;thread1, <span class="literal">NULL</span>, run_thread, config1);</span><br><span class="line"></span><br><span class="line"> <span class="class"><span class="keyword">struct</span> <span class="title">thread_config</span> *<span class="title">config2</span> =</span> (<span class="keyword">struct</span> thread_config*)<span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">struct</span> thread_config));</span><br><span class="line"> config2-&gt;src_interface = dst_interface;</span><br><span class="line"> config2-&gt;src_queue = <span class="number">0</span>;</span><br><span class="line"> config2-&gt;dst_interface = src_interface;</span><br><span class="line"> config2-&gt;dst_queue = <span class="number">0</span>;</span><br><span class="line"> <span class="comment">// rte_eal_remote_launch(run_thread, config2, 1);</span></span><br><span class="line"> pthread_create(&amp;thread2, <span class="literal">NULL</span>, run_thread, config2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在最后使用 <code>pthreaed.join()</code> - 让主线程等待子线程结束后再结束，所以至关重。</p>
+<h2 id="补充知识"><a href="#补充知识" class="headerlink" title="补充知识"></a>补充知识</h2><p><a href="https://wizardforcel.gitbooks.io/network-basic/content/0.html">网络基本功系列</a></p>
+<h1 id="Problem-2"><a href="#Problem-2" class="headerlink" title="Problem 2"></a>Problem 2</h1><h2 id="Step-1-CLI"><a href="#Step-1-CLI" class="headerlink" title="Step 1 - CLI"></a>Step 1 - CLI</h2><p>重点是 <code>int parse_args(int argc, char **argv)</code>：使用 正则表达式 进行划分。核心部分如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">parse_args</span><span class="params">(<span class="type">int</span> argc, <span class="type">char</span> **argv)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="type">int</span> opt;</span><br><span class="line">    <span class="keyword">while</span> ((opt = getopt(argc, argv, <span class="string">&quot;p:r:&quot;</span>)) != EOF)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">switch</span> (opt)</span><br><span class="line">        &#123;</span><br><span class="line">        <span class="keyword">case</span> <span class="string">&#x27;p&#x27;</span>:</span><br><span class="line">        <span class="keyword">case</span> <span class="string">&#x27;r&#x27;</span>:</span><br><span class="line">        <span class="keyword">default</span>:</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">sscanf</span>(optarg, <span class="string">&quot;%d,%s&quot;</span>, &amp;ports[num_ports].interface_id, ports[num_ports].ip_address);</span><br><span class="line"><span class="built_in">sscanf</span>(optarg, <span class="string">&quot;%[^,],%[^,],%d&quot;</span>, routes[num_routes].destination, routes[num_routes].mac_address, &amp;routes[num_routes].interface_id);</span><br></pre></td></tr></table></figure>
+
+<h2 id="Step-2-Multithread-Router-Archtecture"><a href="#Step-2-Multithread-Router-Archtecture" class="headerlink" title="Step 2 - Multithread Router Archtecture"></a>Step 2 - Multithread Router Archtecture</h2><p>这个在 Problem1 的基础上进行扩展。从一个接收，然后扩展到三个 eth 上面。</p>
+<p>首先实现的版本不需要根据命令行的输入进行检测，而是直接三个线程对接三个虚拟机，并且每个都有独立转发到对面全部三个虚拟机的能力。</p>
+<p>RX &#x2F; TX Queue</p>
+<ol>
+<li><p>RX Queue - receive queue stores incoming packets on a network device.</p>
+</li>
+<li><p>TX Queue - transmit queue store packets that are waiting to be transmitted by a network device.</p>
+</li>
+<li><p>The queue is populated by the device’s hardware and is used to store packets that are received by the device.</p>
+</li>
+</ol>
+<p>基于展示的这些特质，实际上我们对于每组转发只需要使用一对 <code>rx/tx queue</code>，就可以实现对于多个目标的转发。</p>
+<p>我们需要实现的从三个不同目标接收到信息，然后进行转发。初始化的时候给每个 <code>interface</code> 配上 <code>num_ports</code> 个 <code>queues</code>。</p>
+<p>【实际实践的时候，比较神奇】只需要一组 <code>Rx/Tx Queue</code>，就可以进行接受和发送的操作了。即便是他们都是使用 <code>dst_queue=0</code> 但是还是可以正常运转。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* Initialize a device by configuring hardware queues.</span></span><br><span class="line"><span class="comment">*</span></span><br><span class="line"><span class="comment">* Number of allocated queues for device with port_id:</span></span><br><span class="line"><span class="comment">* - num_queues rx/tx queues</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="type">void</span> <span class="title function_">configure_device</span><span class="params">(<span class="type">uint8_t</span> port_id, <span class="type">uint16_t</span> num_queues)</span> &#123;</span><br><span class="line">    check_dpdk_error(rte_eth_promiscuous_enable(port_id), <span class="string">&quot;enable promisc mode&quot;</span>);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_eth_conf</span> <span class="title">port_conf</span> =</span> &#123; <span class="number">0</span> &#125;;</span><br><span class="line">    check_dpdk_error(rte_eth_dev_configure(port_id, num_queues, num_queues, &amp;port_conf), <span class="string">&quot;configure device&quot;</span>);</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_eth_dev_info</span> <span class="title">dev_info</span>;</span></span><br><span class="line">    rte_eth_dev_info_get(port_id, &amp;dev_info);</span><br><span class="line">    <span class="keyword">for</span> (<span class="type">uint16_t</span> <span class="built_in">queue</span> = <span class="number">0</span>; <span class="built_in">queue</span> &lt; num_queues; ++<span class="built_in">queue</span>) &#123;</span><br><span class="line">      check_dpdk_error(rte_eth_tx_queue_setup(port_id, <span class="built_in">queue</span>, TX_DESCS, rte_socket_id(), &amp;dev_info.default_txconf), <span class="string">&quot;configure tx queue&quot;</span>);</span><br><span class="line">      check_dpdk_error(rte_eth_rx_queue_setup(port_id, <span class="built_in">queue</span>, RX_DESCS, rte_socket_id(), &amp;dev_info.default_rxconf, create_mempool()), <span class="string">&quot;configure rx queue&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    check_dpdk_error(rte_eth_dev_start(port_id), <span class="string">&quot;starting device&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>疑问</strong><br><code>pthread_join()</code> 一定要放在外面吗？</p>
+<p>是的，如果在每个子函数中就开始 join ()，那么就只有第一个被初始化。后面的没有机会执行。</p>
+<h2 id="Step-3-IPV4-Check"><a href="#Step-3-IPV4-Check" class="headerlink" title="Step 3 - IPV4 Check"></a>Step 3 - IPV4 Check</h2><blockquote>
+<p>IP header checks</p>
+<p>RFC 1812 describes checks performed by routers on IPv4 packets<br>Drop packets if they are invalid</p>
+</blockquote>
+<p>研究的原型函数：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">if</span> (eth_hdr-&gt;ether_type == rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4))</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;is ipv4 format!\n\n\n&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="编程收获"><a href="#编程收获" class="headerlink" title="编程收获"></a>编程收获</h3><h4 id="1-跨文件全局变量"><a href="#1-跨文件全局变量" class="headerlink" title="1. 跨文件全局变量"></a>1. 跨文件全局变量</h4><ol>
+<li>普通的全局变量 - 使用 extern 即可</li>
+<li>全局数组的定义</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// helper.cpp</span></span><br><span class="line"><span class="type">int</span> tmp[NUM_INT];</span><br><span class="line"></span><br><span class="line"><span class="comment">// helper.h</span></span><br><span class="line"><span class="keyword">extern</span> in</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-rte-ether-addr"><a href="#2-rte-ether-addr" class="headerlink" title="2. rte_ether_addr"></a>2. rte_ether_addr</h4><ol>
+<li>定义</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">- Ethernet address:</span></span><br><span class="line"><span class="comment">- A universally administered address is uniquely assigned to a device by its</span></span><br><span class="line"><span class="comment">- manufacturer. The first three octets (in transmission order) contain the</span></span><br><span class="line"><span class="comment">- Organizationally Unique Identifier (OUI). The following three (MAC-48 and</span></span><br><span class="line"><span class="comment">- EUI-48) octets are assigned by that organization with the only constraint</span></span><br><span class="line"><span class="comment">- of uniqueness.</span></span><br><span class="line"><span class="comment">- A locally administered address is assigned to a device by a network</span></span><br><span class="line"><span class="comment">- administrator and does not contain OUIs.</span></span><br><span class="line"><span class="comment">- See &lt;http://standards.ieee.org/regauth/groupmac/tutorial.html&gt;</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_addr</span> &#123;</span></span><br><span class="line">    <span class="type">uint8_t</span> addr_bytes[RTE_ETHER_ADDR_LEN]; <span class="comment">/**&lt; Addr bytes in tx order */</span></span><br><span class="line">&#125; __rte_aligned(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><p>源头是 <code>rte_mbuf</code></p>
+<p> 输出 <code>buf</code> 内存储的结果</p>
+</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_mbuf</span> *<span class="title">buf</span>;</span></span><br><span class="line">rte_pktmbuf_dump(<span class="built_in">stdout</span>, buf, rte_pktmbuf_pkt_len(buf));</span><br><span class="line">dump mbuf at <span class="number">0x1018b49c0</span>, iova=<span class="number">0x4d2b4a40</span>, buf_len=<span class="number">1728</span></span><br><span class="line">  pkt_len=<span class="number">42</span>, ol_flags=<span class="number">0</span>, nb_segs=<span class="number">1</span>, port=<span class="number">1</span>, ptype=<span class="number">0</span></span><br><span class="line">  segment at <span class="number">0x1018b49c0</span>, data=<span class="number">0x1018b4ac0</span>, len=<span class="number">42</span>, off=<span class="number">128</span>, refcnt=<span class="number">1</span></span><br><span class="line">  Dump data at [<span class="number">0x1018b4ac0</span>], len=<span class="number">42</span></span><br><span class="line"><span class="number">00000000</span>: FF FF FF FF FF FF <span class="number">52</span> <span class="number">54</span> <span class="number">00</span> FF <span class="number">02</span> <span class="number">00</span> <span class="number">08</span> <span class="number">06</span> <span class="number">00</span> <span class="number">01</span> | ......RT........</span><br><span class="line"><span class="number">00000010</span>: <span class="number">08</span> <span class="number">00</span> <span class="number">06</span> <span class="number">04</span> <span class="number">00</span> <span class="number">01</span> <span class="number">52</span> <span class="number">54</span> <span class="number">00</span> FF <span class="number">02</span> <span class="number">00</span> C0 A8 <span class="number">00</span> <span class="number">02</span> | ......RT........</span><br><span class="line"><span class="number">00000020</span>: <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> C0 A8 <span class="number">00</span> <span class="number">01</span>                   | ..........</span><br><span class="line">从 buf 转换到 rte_ether_hdr 的形式</span><br><span class="line"></span><br><span class="line"><span class="comment">/*map packet buffer to ethernet struct*/</span></span><br><span class="line">    <span class="keyword">struct</span> rte_ether_hdr *eth = rte_pktmbuf_mtod(buf, <span class="keyword">struct</span> rte_ether_hdr*);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="IPV4-检测"><a href="#IPV4-检测" class="headerlink" title="IPV4 检测"></a>IPV4 检测</h3><blockquote>
+<p>One of the responsibilities of an IPv4 router is to perform checks on incoming IPv4 packets to ensure that they are valid. This includes verifying that the packet’s header fieldsare correctly formatted and that the packet’s checksum is correct.</p>
+<p>对应的思路：</p>
+<p>To check if an IPv4 packet contained in a DPDK mbuf is valid.</p>
+<ol>
+<li><p>Check the packet length: Use the pkt_len field of the rte_mbuf structure to make sure the packet is at least 20 bytes long, as that is the minimum length for an IPv4 packet.</p>
+</li>
+<li><p>Get a pointer to the packet data: Use the mtod function to get a pointer to the start of the packet data contained in the mbuf.</p>
+</li>
+<li><p>Check the version number: The first byte of the packet contains the version number. For an IPv4 packet, this should be</p>
+</li>
+<li><p>Check the header length: The second byte of the packet contains the header length, which indicates the length of the IPv4 header in 32-bit words. Make sure this value is at least 5, as that is the minimum length for an IPv4 header.</p>
+</li>
+<li><p>Check the total length field: The total length field, which is located in bytes 2 and 3 of the packet, indicates the total length of the packet in bytes. Make sure this value is greater than or equal to the header length.</p>
+</li>
+<li><p>Check the checksum: The checksum is located in bytes 10 and 11 of the packet. To validate the checksum, you can calculate the checksum for the packet and compare it to the value in the packet. If the values do not match, the packet is invalid.</p>
+</li>
+</ol>
+<p>7 .Check the source and destination addresses: The source and destination addresses are located in bytes 12 through 15 and 16 through 19, respectively. Make sure these addresses are properly formatted and not reserved or invalid.</p>
+<p>If any of these checks fail, you can free the mbuf using the rte_pktmbuf_free function and discard the packet.</p>
+</blockquote>
+<h2 id="Step4-ARP-Reply"><a href="#Step4-ARP-Reply" class="headerlink" title="Step4 - ARP Reply"></a>Step4 - ARP Reply</h2><p>项目中最精华的部分就是实现 ARP Reply，直观表现是 client 可以收到 ARP，最终的影响是 client 获取到了需要的 MAC 地址，能够互相 ping 通。</p>
+<h3 id="Ethernet-header-和-ARP-header"><a href="#Ethernet-header-和-ARP-header" class="headerlink" title="Ethernet header 和 ARP header"></a>Ethernet header 和 ARP header</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_hdr</span> *<span class="title">eth_hdr</span> =</span> rte_pktmbuf_mtod(buf, <span class="keyword">struct</span> rte_ether_hdr*);</span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_arp_hdr</span> *<span class="title">arp_hdr</span> =</span> (<span class="keyword">struct</span> rte_arp_hdr*)(eth_hdr + <span class="number">1</span>);</span><br></pre></td></tr></table></figure>
+
+<p>在对应的位置获取并且填入相关的信息。</p>
+<h3 id="IP-Address-amp-MAC-Address"><a href="#IP-Address-amp-MAC-Address" class="headerlink" title="IP Address &amp; MAC Address"></a>IP Address &amp; MAC Address</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line">send_arp_reply(&amp;arp_hdr-&gt;arp_data.arp_tha, arp_hdr-&gt;arp_data.arp_tip, &amp;arp_hdr-&gt;arp_data.arp_sha, arp_hdr-&gt;arp_data.arp_sip, config-&gt;interface, buf);</span><br></pre></td></tr></table></figure>
+
+<h3 id="发送-ARP-Reply-包"><a href="#发送-ARP-Reply-包" class="headerlink" title="发送 ARP Reply 包"></a>发送 ARP Reply 包</h3><p>实际上和发送一个普通包的效果一样，只是类型目前是 <code>RTE_ETHER_TYPE_ARP</code>。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">send_arp_reply</span><span class="params">(<span class="keyword">struct</span> rte_ether_addr *src_mac, <span class="type">uint32_t</span> src_ip,</span></span><br><span class="line"><span class="params"><span class="keyword">struct</span> rte_ether_addr*dst_mac, <span class="type">uint32_t</span> dst_ip,</span></span><br><span class="line"><span class="params">                   <span class="type">uint8_t</span> port_id, <span class="keyword">struct</span> rte_mbuf *mbuf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Successfully here!\n&quot;</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Initialize the Ethernet header</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_ether_hdr</span> *<span class="title">eth_hdr</span> =</span> rte_pktmbuf_mtod(mbuf, <span class="keyword">struct</span> rte_ether_hdr *);</span><br><span class="line">    rte_ether_addr_copy(dst_mac, &amp;eth_hdr-&gt;d_addr);</span><br><span class="line">    rte_ether_addr_copy(src_mac, &amp;eth_hdr-&gt;s_addr);</span><br><span class="line">    eth_hdr-&gt;ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Initialize the ARP header</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">rte_arp_hdr</span> *<span class="title">arp_hdr</span> =</span> (<span class="keyword">struct</span> rte_arp_hdr *)(eth_hdr + <span class="number">1</span>);</span><br><span class="line">    arp_hdr-&gt;arp_hardware = rte_cpu_to_be_16(RTE_ARP_HRD_ETHER);</span><br><span class="line">    arp_hdr-&gt;arp_protocol = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);</span><br><span class="line">    arp_hdr-&gt;arp_hlen = <span class="number">6</span>;</span><br><span class="line">    arp_hdr-&gt;arp_plen = <span class="number">4</span>;</span><br><span class="line">    arp_hdr-&gt;arp_opcode = rte_cpu_to_be_16(RTE_ARP_OP_REPLY);</span><br><span class="line">    rte_ether_addr_copy(src_mac, &amp;arp_hdr-&gt;arp_data.arp_sha);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_sip = src_ip;</span><br><span class="line">    rte_ether_addr_copy(dst_mac, &amp;arp_hdr-&gt;arp_data.arp_tha);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_tip = rte_cpu_to_be_32(dst_ip);</span><br><span class="line">    arp_hdr-&gt;arp_data.arp_tip = dst_ip;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Send the ARP reply packet</span></span><br><span class="line">    <span class="type">int</span> ret = send_to_device(port_id, mbuf);</span><br><span class="line">    <span class="keyword">if</span> (ret &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// Error sending packet</span></span><br><span class="line">        rte_pktmbuf_free(mbuf);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">-1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="type">int</span> <span class="title function_">send_to_device</span><span class="params">(<span class="type">uint8_t</span> interface, <span class="keyword">struct</span> rte_mbuf *buf)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Sending ARP Back: &quot;</span>);</span><br><span class="line">    rte_pktmbuf_dump(<span class="built_in">stdout</span>, buf, rte_pktmbuf_pkt_len(buf));</span><br><span class="line">    <span class="keyword">while</span> (!rte_eth_tx_burst(interface, interface, &amp;buf, <span class="number">1</span>))</span><br><span class="line">        ;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要注意，这个时候如果只是发送 ARP Reply，但是里面信息不对，是没有办法 ping 通的。</p>
+<p>我最开始就有这个问题：包中包括的 ip 地址 (uint32_t 转换为 ip 格式）是正好倒过来的，所以 client 收到了 ARP Reply 但是不能建立有效链接。</p>
+<p>修正这个问题后，终于可以 ping 通。</p>
+<p><img data-src="/acn-router-project/image3.png"></p>
+<h1 id="Problem-3"><a href="#Problem-3" class="headerlink" title="Problem 3"></a>Problem 3</h1><h2 id="背景知识"><a href="#背景知识" class="headerlink" title="背景知识"></a>背景知识</h2><ol>
+<li>makefile &amp; CMakeLists.txt 的关系<br>在有了 CMakeLists.txt 之后，可以在 <code>cmake .</code> 的时候生成 Makefile。所以就不用在意 Makefile 的内容。主要修改 CMakeLists.txt。</li>
+</ol>
+<p>这也就解释了编译时候的顺序，首先通过 <code>cmake .</code> 来编译出来 <code>Makefile</code>, 然后通过 <code>make</code> 来实现原始方式的执行。</p>
+<ol start="2">
+<li>测试使用的 gtest 框架<br>使用 <code>ASSERT_TRUE</code> 或 <code>EXPECT_TRUE</code> 来进行断言。如果结果不为真，则测试失败。<br>两者的区别是：</li>
+</ol>
+<ul>
+<li>ASSERT: 失败后就退出当前函数。</li>
+<li>EXPECT: 失败后还会继续运行程序，只有在最后的时候才会显示所有的错误记录。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 断言 a 是否等于 1</span></span><br><span class="line">ASSERT_TRUE(a == <span class="number">1</span>) &lt;&lt; <span class="string">&quot;a 应该等于 1&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 断言 b 是否等于 3</span></span><br><span class="line">EXPECT_TRUE(b == <span class="number">3</span>) &lt;&lt; <span class="string">&quot;b 应该等于 3&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 断言 c 是否等于 1</span></span><br><span class="line">EXPECT_EQ(c, <span class="number">1</span>) &lt;&lt; <span class="string">&quot;c 应该等于 1&quot;</span>;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>位运算<br>这次的 project 中我们需要操作很多位运算。简单记录一下。</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 创建 16 bit 元素的数组</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> tbl24 int16_t</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">tbl24</span> <span class="title">TBL24</span>[<span class="title">TBL24_SIZE</span>];</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过位移创建 IPV4 的地址</span></span><br><span class="line"><span class="comment">/** Create IPv4 address */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> RTE_IPV4(a, b, c, d) ((uint32_t)(((a) &amp; 0xff) &lt;&lt; 24) | \</span></span><br><span class="line"><span class="meta">        (((b) &amp; 0xff) &lt;&lt; 16) | \</span></span><br><span class="line"><span class="meta">        (((c) &amp; 0xff) &lt;&lt; 8)  | \</span></span><br><span class="line"><span class="meta">        ((d) &amp; 0xff))</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight sh"><table><tr><td class="code"><pre><span class="line">cmake -DCMAKE_BUILD_TYPE=Debug .</span><br></pre></td></tr></table></figure>
+
+<h1 id="Problem-4"><a href="#Problem-4" class="headerlink" title="Problem 4"></a>Problem 4</h1><p>Solved</p>
+]]></content>
+      <categories>
+        <category>Computer Networks</category>
+      </categories>
+  </entry>
+</search>
